@@ -1,0 +1,47 @@
+# глобально
+node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+*.cache
+.cache/
+.tmp/
+.temp/
+.eslintcache
+*.local
+
+# env (оставляем только пример)
+.env
+.env.*.local
+.env.local
+!.env.example
+
+# Next.js
+.next/
+out/
+.vercel/
+
+# Turborepo / Nx / swc
+.turbo/
+.swc/
+dist/
+build/
+coverage/
+
+# приложения
+/apps/web/.next/
+/apps/web/out/
+/apps/api/dist/
+
+# IDE
+.vscode/
+.idea/
+
+# misc
+*.pid
+*.seed
+*.tgz

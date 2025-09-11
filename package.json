@@ -1,0 +1,21 @@
+{
+  "name": "@planner/monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build:packages": "npm -w @planner/shared run build && npm -w @planner/geometry run build && npm -w @planner/rules run build && npm -w @planner/serializer run build",
+    "dev": "npm-run-all -p dev:web dev:api",
+    "dev:web": "npm run dev -w @planner/web",
+    "dev:api": "npm run start:dev -w @planner/api",
+    "build": "npm run build:packages && npm-run-all -s build:web build:api",
+    "build:web": "npm run build -w @planner/web",
+    "build:api": "npm run build -w @planner/api"
+  },
+  "devDependencies": {
+    "npm-run-all": "latest",
+    "typescript": "latest"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@planner/api",
+  "private": true,
+  "version": "0.4.0",
+  "scripts": {
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "build": "nest build"
+  },
+  "dependencies": {
+    "@nestjs/common": "latest",
+    "@nestjs/core": "latest",
+    "@nestjs/platform-express": "latest",
+    "reflect-metadata": "latest",
+    "rxjs": "latest",
+    "@planner/shared": "0.4.0",
+    "@planner/serializer": "0.4.0"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "latest",
+    "typescript": "latest",
+    "ts-node": "latest",
+    "tsconfig-paths": "latest"
+  }
+}

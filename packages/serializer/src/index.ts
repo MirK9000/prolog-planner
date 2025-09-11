@@ -1,0 +1,1 @@
+export { toProlog } from './toProlog';
