@@ -1,10 +1,11 @@
+
+import type { Rect, Size } from '@planner/shared';
+
 export const DOOR_CLEAR_FACTOR = 1.5; // квадрат со стороной 1.5*W двери, направлен внутрь
 
 // пересечение прямоугольников (мм)
-export const rIntersects = (
-  a: { X: number; Y: number; W: number; H: number },
-  b: { X: number; Y: number; W: number; H: number }
-) => a.X < b.X + b.W && a.X + a.W > b.X && a.Y < b.Y + b.H && a.Y + a.H > b.Y;
+export const rIntersects = (a: Rect, b: Rect) =>
+  a.X < b.X + b.W && a.X + a.W > b.X && a.Y < b.Y + b.H && a.Y + a.H > b.Y;
 
 // клиентская версия вычисления зоны
 export const computeDoorZone = (
