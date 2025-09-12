@@ -52,15 +52,24 @@ function initCounters(objects: StaticObject[]) {
 
 export const usePlanStore = create<State>((set, get) => ({
   plan: {
-    room: { W: 11000, H: 7000 },
+    // Standard Classroom demo plan
+    room: { W: 10000, H: 8000 },
     objects: [
-      { id: 'door-1', type: 'door', rect: { X: 2000, Y: 6800, W: 900, H: 200 }, properties: [{ kind: 'status', value: 'evacuation' }], requiresWallAnchor: true },
-      { id: 'win-1', type: 'window', rect: { X: 2000, Y: 0, W: 2000, H: 200 }, properties: [], requiresWallAnchor: true },
-      { id: 'col-1', type: 'column', rect: { X: 3000, Y: 2500, W: 1000, H: 1000 }, properties: [] },
-      { id: 'fe-1', type: 'fire_extinguisher', rect: { X: 500, Y: 500, W: 200, H: 200 }, properties: [] },
-      { id: 'wp-1', type: 'workplace', rect: { X: 8000, Y: 3500, W: 1200, H: 800 }, properties: [] },
+      // door on the bottom wall for evacuation
+      { id: 'door-1', type: 'door', rect: { X: 500, Y: 7800, W: 900, H: 200 }, properties: [{ kind: 'status', value: 'evacuation' }], requiresWallAnchor: true },
+      // two windows on the top wall
+      { id: 'win-1', type: 'window', rect: { X: 1000, Y: 0, W: 2000, H: 200 }, properties: [], requiresWallAnchor: true },
+      { id: 'win-2', type: 'window', rect: { X: 5000, Y: 0, W: 3000, H: 200 }, properties: [], requiresWallAnchor: true },
+      // interior column obstructing the space
+      { id: 'col-1', type: 'column', rect: { X: 4500, Y: 3200, W: 800, H: 800 }, properties: [] },
+      // equipment along the walls
+      { id: 'fe-1', type: 'fire_extinguisher', rect: { X: 1700, Y: 7600, W: 200, H: 200 }, properties: [], requiresWallAnchor: true },
+      { id: 'esh-1', type: 'electrical_shield', rect: { X: 9800, Y: 400, W: 200, H: 300 }, properties: [], requiresWallAnchor: true },
+      { id: 'com-1', type: 'comms_block', rect: { X: 9700, Y: 7700, W: 300, H: 300 }, properties: [], requiresWallAnchor: true },
+      { id: 'net-1', type: 'net_cabinet', rect: { X: 9400, Y: 2500, W: 600, H: 500 }, properties: [], requiresWallAnchor: true },
+      { id: 'cab-1', type: 'cabinet', rect: { X: 0, Y: 2000, W: 500, H: 1500 }, properties: [], requiresWallAnchor: true },
     ],
-    task: { count: 10, size: { W: 1200, H: 800 } }
+    task: { count: 12, size: { W: 1200, H: 800 } }
   },
 
   selectedId: undefined,
