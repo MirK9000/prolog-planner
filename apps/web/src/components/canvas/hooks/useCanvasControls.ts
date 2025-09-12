@@ -62,7 +62,11 @@ export function useCanvasControls(
         return () => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); };
     }, [zoomAtCenter, setPlacingType, deleteSelected, placingType]);
 
-    const stopPan = () => setIsPanning(false);
+    const stopPan = () => {
+        if (isPanning) {
+            setIsPanning(false);
+        }
+    };
 
     React.useEffect(() => {
         window.addEventListener('mouseup', stopPan);

@@ -1,5 +1,6 @@
 // apps/web/src/components/canvas/config.ts
 import type { StaticObject } from '@planner/shared';
+import type { Rect, Size } from '@planner/shared';
 
 // Визуальные константы
 export const PX_PER_MM = 0.1;
@@ -52,3 +53,19 @@ export const DEFAULT_SIZE_MM: Record<string, { W: number; H: number }> = {
 };
 
 export const REQUIRES_WALL_ANCHOR = new Set(['door', 'window']);
+
+
+/**
+ * Вычисляет запретную зону перед дверью (1.2м вглубь помещения).
+ */
+export const computeDoorZone = (room: Size, doorRect: Rect): Rect | null => {
+  const { X, Y, W, H } = doorRect;
+  const depth = 1200;
+
+  if (Y === 0) return { X, Y, W, H: depth }; // Верхняя стена
+  if (Y + H === room.H) return { X, Y: Y - depth, W, H: depth }; // Нижняя стена
+  if (X === 0) return { X, Y, W: depth, H }; // Левая стена
+  if (X + W === room.W) return { X: X - depth, Y, W: depth, H }; // Правая стена
+
+  return null;
+};

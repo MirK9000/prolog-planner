@@ -78,16 +78,19 @@ export function useObjectInteractions(
         setLiveBox({ id: o.id, X, Y, W, H });
     };
 
-    const onDragEnd = (o: StaticObject, xPx: number, yPx: number) => {
-        const mmX = Math.round((xPx - baseX) / mm2px);
-        const mmY = Math.round((yPx - baseY) / mm2px);
+    const onDragEnd = (o: StaticObject, node: any) => {
+        const mmX = Math.round((node.x() - baseX) / mm2px);
+        const mmY = Math.round((node.y() - baseY) / mm2px);
         let snappedX = snap(mmX, GRID_MM);
         let snappedY = snap(mmY, GRID_MM);
 
         const newRect = { X: snappedX, Y: snappedY, W: o.rect.W, H: o.rect.H };
         const hit = doorZonesMm.some(({ z }) => rectIntersects(newRect, z));
+        
         if (hit) {
-            updateObject(o.id, { X: o.rect.X, Y: o.rect.Y });
+            // Возвращаем визуальный объект на его старое место
+            node.x(baseX + o.rect.X * mm2px);
+            node.y(baseY + o.rect.Y * mm2px);
             setLiveBox(null);
             return;
         }
