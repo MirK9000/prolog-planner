@@ -4,151 +4,22 @@ import { Stage, Layer, Rect, Transformer, Line, Text } from 'react-konva';
 import type { StaticObject } from '@planner/shared';
 import { usePlanStore } from '../store/planStore';
 import { clamp, snap } from '@planner/geometry';
-
-const PX_PER_MM = 0.1;
-const GRID_MM = 100;
-const MIN_SIZE_MM = 100;
-const PADDING_PX = 20;
-
-// Человеко-читабельные названия (RU)
-const TYPE_LABEL: Record<string, string> = {
-  door: 'Дверь',
-  window: 'Окно',
-  column: 'Колонна',
-  workplace: 'РМ',
-  fire_extinguisher: 'Огнетуш.',
-  fire_alarm: 'Пож. изв.',
-  electrical_shield: 'Эл. щит',
-  comms_block: 'Связь',
-  net_cabinet: 'Сет. шкаф',
-  cabinet: 'Шкаф',
-  wall: 'Стена',
-};
-
-// Короткие подписи для мелких объектов
-const TYPE_SHORT: Record<string, string> = {
-  workplace: 'РМ',
-  door: 'Дверь',
-  window: 'Окно',
-  column: 'Кол.',
-  fire_extinguisher: 'Огн.',
-  fire_alarm: 'Изв.',
-  electrical_shield: 'Щит',
-  comms_block: 'Связь',
-  net_cabinet: 'Сет.',
-  cabinet: 'Шкаф',
-  wall: 'Ст.',
-};
-
-// Цвета
-const TYPE_COLOR: Record<string, { fill: string; stroke: string }> = {
-  door: { fill: '#f59e0b33', stroke: '#f59e0b' },
-  window: { fill: '#38bdf833', stroke: '#38bdf8' },
-  column: { fill: '#94a3b833', stroke: '#94a3b8' },
-  workplace: { fill: '#22c55e33', stroke: '#22c55e' },
-  fire_extinguisher: { fill: '#ef444433', stroke: '#ef4444' },
-  fire_alarm: { fill: '#f9731633', stroke: '#f97316' },
-  electrical_shield: { fill: '#06b6d433', stroke: '#06b6d4' },
-  comms_block: { fill: '#e879f933', stroke: '#e879f9' },
-  net_cabinet: { fill: '#10b98133', stroke: '#10b981' },
-  cabinet: { fill: '#d946ef33', stroke: '#d946ef' },
-  wall: { fill: '#9ca3af33', stroke: '#9ca3af' },
-};
-
-// размеры по умолчанию для новых объектов (мм)
-const DEFAULT_SIZE_MM: Record<string, { W: number; H: number }> = {
-  workplace: { W: 1200, H: 800 },
-  door: { W: 900, H: 200 },
-  window: { W: 2000, H: 200 },
-  column: { W: 1000, H: 1000 },
-  fire_extinguisher: { W: 200, H: 200 },
-  fire_alarm: { W: 200, H: 200 },
-  electrical_shield: { W: 800, H: 200 },
-  cabinet: { W: 1000, H: 500 },
-  net_cabinet: { W: 800, H: 600 },
-  comms_block: { W: 400, H: 200 },
-};
-
-// какие типы «прибиваются» к стене
-const REQUIRES_WALL = new Set(['door', 'window']);
-
-// ===== Запретная зона перед дверью (СП 1.13130.2020 п.4.2.21) =====
-const DOOR_CLEAR_FACTOR = 1.5; // квадрат со стороной 1.5*W двери, направлен внутрь
-// пересечение прямоугольников (мм)
-const rIntersects = (
-  a: { X: number; Y: number; W: number; H: number },
-  b: { X: number; Y: number; W: number; H: number }
-) => a.X < b.X + b.W && a.X + a.W > b.X && a.Y < b.Y + b.H && a.Y + a.H > b.Y;
-
-// клиентская версия вычисления зоны
-const computeDoorZone = (
-  room: { W: number; H: number },
-  door: { X: number; Y: number; W: number; H: number }
-) => {
-  const { X, Y, W, H } = door;
-  const side = Math.round(DOOR_CLEAR_FACTOR * W);
-  const cx = X + W / 2;
-  const cy = Y + H / 2;
-  const clamp01 = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
-
-  if (X === 0) {
-    // левая стена → зона вправо
-    return {
-      X: X + W,
-      Y: clamp01(Math.round(cy - side / 2), 0, room.H - side),
-      W: Math.min(side, room.W - (X + W)),
-      H: Math.min(side, room.H),
-    };
-  }
-  if (X + W === room.W) {
-    // правая стена → зона влево
-    return {
-      X: Math.max(0, room.W - W - side),
-      Y: clamp01(Math.round(cy - side / 2), 0, room.H - side),
-      W: Math.min(side, room.W - W),
-      H: Math.min(side, room.H),
-    };
-  }
-  if (Y === 0) {
-    // верхняя стена → зона вниз
-    return {
-      X: clamp01(Math.round(cx - side / 2), 0, room.W - side),
-      Y: Y + H,
-      W: Math.min(side, room.W),
-      H: Math.min(side, room.H - (Y + H)),
-    };
-  }
-  if (Y + H === room.H) {
-    // нижняя стена → зона вверх
-    return {
-      X: clamp01(Math.round(cx - side / 2), 0, room.W - side),
-      Y: Math.max(0, room.H - H - side),
-      W: Math.min(side, room.W),
-      H: Math.min(side, room.H - H),
-    };
-  }
-  return null;
-};
-// ================================================================
+import {
+  PX_PER_MM,
+  GRID_MM,
+  MIN_SIZE_MM,
+  PADDING_PX,
+  TYPE_LABEL,
+  TYPE_SHORT,
+  TYPE_COLOR,
+  DEFAULT_SIZE_MM,
+  REQUIRES_WALL,
+} from './canvasConstants';
+import { rIntersects, computeDoorZone } from './doorZone';
+import { useContainerSize } from '../hooks/useContainerSize';
+import { MeasurementOverlay } from './MeasurementOverlay';
 
 type View = { zoom: number; panX: number; panY: number };
-
-const useContainerSize = (ref: React.RefObject<HTMLDivElement>) => {
-  const [size, setSize] = React.useState({ w: 800, h: 600 });
-  React.useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new ResizeObserver(() => {
-      const w = el.clientWidth,
-        h = el.clientHeight;
-      setSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
-    });
-    obs.observe(el);
-    setSize({ w: el.clientWidth, h: el.clientHeight });
-    return () => obs.disconnect();
-  }, [ref]);
-  return size;
-};
 
 export const EditorCanvas: React.FC = () => {
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -536,154 +407,6 @@ export const EditorCanvas: React.FC = () => {
   );
 
   // ======= Измерительный оверлей для выделенного объекта =======
-  const renderMeasurementOverlay = () => {
-    const selId = selectedId;
-    if (!selId) return null;
-
-    const src =
-      liveBox && liveBox.id === selId
-        ? liveBox
-        : plan.objects.find((o) => o.id === selId);
-    if (!src) return null;
-
-    const hasRect = (src as any).rect !== undefined;
-    const X = hasRect ? (src as any).rect.X : (src as any).X;
-    const Y = hasRect ? (src as any).rect.Y : (src as any).Y;
-    const W = hasRect ? (src as any).rect.W : (src as any).W;
-    const H = hasRect ? (src as any).rect.H : (src as any).H;
-
-    const x = baseX + X * mm2px;
-    const y = baseY + Y * mm2px;
-    const w = W * mm2px;
-    const h = H * mm2px;
-
-    const widthLabel = `${Math.round(W)} мм`;
-    const heightLabel = `${Math.round(H)} мм`;
-    const posLabel = `X=${Math.round(X)} мм · Y=${Math.round(Y)} мм`;
-
-    const off = 10;
-    const tick = 6;
-
-    // ширина — снизу, если влезает; иначе сверху
-    const labelH = 16;
-    const canPlaceBottom = y + h + off + labelH + 2 <= baseY + roomHpx;
-    const hLineY = canPlaceBottom ? y + h + off : y - off;
-    const widthLabelY = canPlaceBottom ? hLineY + 2 : hLineY - labelH - 2;
-
-    // высота — слева, если влезает; иначе справа
-    const labelW = 56;
-    const canPlaceLeft = x - off - labelW - 4 >= baseX;
-    const vLineX = canPlaceLeft ? x - off : x + w + off;
-    const heightLabelX = canPlaceLeft ? vLineX - labelW - 4 : vLineX + 4;
-    const heightAlign: 'left' | 'right' = canPlaceLeft ? 'right' : 'left';
-
-    // бейдж позиции — смещаем внутрь, если упирается вверх
-    const posBadgeH = 18;
-    const posBadgeY = y - 22 < baseY + 2 ? y + 4 : y - 22;
-
-    return (
-      <>
-        {/* пунктирная рамка */}
-        <Rect
-          x={x}
-          y={y}
-          width={w}
-          height={h}
-          stroke="#111"
-          dash={[4, 4]}
-          strokeWidth={1}
-          listening={false}
-        />
-
-        {/* горизонтальная линейка ширины */}
-        <Line
-          points={[x, hLineY, x + w, hLineY]}
-          stroke="#111"
-          listening={false}
-        />
-        <Line
-          points={[x, hLineY - tick / 2, x, hLineY + tick / 2]}
-          stroke="#111"
-          listening={false}
-        />
-        <Line
-          points={[x + w, hLineY - tick / 2, x + w, hLineY + tick / 2]}
-          stroke="#111"
-          listening={false}
-        />
-        <Text
-          text={widthLabel}
-          x={x}
-          y={widthLabelY}
-          width={w}
-          align="center"
-          fontSize={12}
-          fontStyle="600"
-          fill="#111"
-          listening={false}
-          shadowColor="#fff"
-          shadowBlur={3}
-          shadowOpacity={1}
-        />
-
-        {/* вертикальная линейка высоты */}
-        <Line
-          points={[vLineX, y, vLineX, y + h]}
-          stroke="#111"
-          listening={false}
-        />
-        <Line
-          points={[vLineX - tick / 2, y, vLineX + tick / 2, y]}
-          stroke="#111"
-          listening={false}
-        />
-        <Line
-          points={[
-            vLineX - tick / 2,
-            y + h,
-            vLineX + tick / 2,
-            y + h,
-          ]}
-          stroke="#111"
-          listening={false}
-        />
-        <Text
-          text={heightLabel}
-          x={heightLabelX}
-          y={y + h / 2 - 8}
-          width={labelW}
-          align={heightAlign}
-          fontSize={12}
-          fontStyle="600"
-          fill="#111"
-          listening={false}
-          shadowColor="#fff"
-          shadowBlur={3}
-          shadowOpacity={1}
-        />
-
-        {/* Бейдж X/Y */}
-        <Rect
-          x={x}
-          y={posBadgeY}
-          width={140}
-          height={posBadgeH}
-          fill="rgba(255,255,255,0.9)"
-          cornerRadius={4}
-          stroke="#ddd"
-          listening={false}
-        />
-        <Text
-          text={posLabel}
-          x={x + 6}
-          y={posBadgeY + 2}
-          fontSize={12}
-          fill="#111"
-          listening={false}
-        />
-      </>
-    );
-  };
 
   // ——— Правила отображения подписи внутри объекта ———
   const shouldShowLabel = (selected: boolean, w: number, h: number) => {
@@ -859,7 +582,18 @@ export const EditorCanvas: React.FC = () => {
         </Layer>
 
         {/* Верхний слой: измерительный оверлей */}
-        <Layer listening={false}>{renderMeasurementOverlay()}</Layer>
+        <Layer listening={false}>
+          <MeasurementOverlay
+            selectedId={selectedId}
+            liveBox={liveBox}
+            plan={plan}
+            baseX={baseX}
+            baseY={baseY}
+            mm2px={mm2px}
+            roomWpx={roomWpx}
+            roomHpx={roomHpx}
+          />
+        </Layer>
       </Stage>
     </div>
   );
