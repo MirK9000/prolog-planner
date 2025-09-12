@@ -264,7 +264,9 @@ export const EditorCanvas: React.FC = () => {
       snappedY = snap(mmY, GRID_MM);
 
     const newRect = { X: snappedX, Y: snappedY, W: o.rect.W, H: o.rect.H };
-    const hit = doorZonesMm.some(({ z }) => rIntersects(newRect, z));
+    const hit = doorZonesMm
+      .filter(({ id }) => id !== o.id)
+      .some(({ z }) => rIntersects(newRect, z));
     if (hit) {
       // откат: оставим на старых координатах
       updateObject(o.id, { X: o.rect.X, Y: o.rect.Y });
@@ -287,7 +289,7 @@ export const EditorCanvas: React.FC = () => {
         });
       else updateObject(o.id, { X: snappedX, Y: plan.room.H - o.rect.H });
     } else {
-      updateObject(o.id, { X: snappedX, Y: snappedY });
+    updateObject(o.id, { X: snappedX, Y: snappedY });
     }
     setLiveBox(null);
   };
@@ -307,12 +309,25 @@ export const EditorCanvas: React.FC = () => {
     newHmm = snap(newHmm, GRID_MM);
     node.scaleX(1);
     node.scaleY(1);
-    updateObject(o.id, {
+    const newRect = {
       W: newWmm,
       H: newHmm,
       X: Math.round((node.x() - baseX) / mm2px),
       Y: Math.round((node.y() - baseY) / mm2px),
-    });
+    };
+    const hit = doorZonesMm
+      .filter(({ id }) => id !== o.id)
+      .some(({ z }) => rIntersects(newRect, z));
+    if (hit) {
+      node.x(baseX + o.rect.X * mm2px);
+      node.y(baseY + o.rect.Y * mm2px);
+      node.width(o.rect.W * mm2px);
+      node.height(o.rect.H * mm2px);
+      updateObject(o.id, { ...o.rect });
+      setLiveBox(null);
+      return;
+    }
+    updateObject(o.id, newRect);
     setLiveBox(null);
   };
 
@@ -338,9 +353,19 @@ export const EditorCanvas: React.FC = () => {
         maxY = baseY + roomHpx - h;
       x = Math.min(Math.max(x, baseX), maxX);
       y = Math.min(Math.max(y, baseY), maxY);
+      const rect = {
+        X: Math.round((x - baseX) / mm2px),
+        Y: Math.round((y - baseY) / mm2px),
+        W: Math.round(w / mm2px),
+        H: Math.round(h / mm2px),
+      };
+      const hit = doorZonesMm
+        .filter(({ id }) => id !== selectedId)
+        .some(({ z }) => rIntersects(rect, z));
+      if (hit) return oldBox;
       return { ...newBox, x, y, width: w, height: h };
     },
-    [MIN_PX, baseX, baseY, roomWpx, roomHpx]
+    [MIN_PX, baseX, baseY, roomWpx, roomHpx, mm2px, doorZonesMm, selectedId]
   );
 
 
@@ -412,6 +437,7 @@ export const EditorCanvas: React.FC = () => {
                 if (ref) shapeRefs.current[o.id] = ref;
               }}
               zoom={view.zoom}
+              doorZones={doorZonesMm.filter(({ id }) => id !== o.id)}
             />
           ))}
 

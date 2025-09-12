@@ -4,6 +4,9 @@ import { clamp } from '@planner/geometry';
 import type { StaticObject } from '@planner/shared';
 import { TYPE_COLOR, TYPE_LABEL, TYPE_SHORT } from '../config';
 
+import { rIntersects } from '../doorZone';
+
+
 interface Props {
   object: StaticObject;
   selected: boolean;
@@ -19,6 +22,7 @@ interface Props {
   onTransformEnd: () => void;
   setRef: (ref: any) => void;
   zoom: number;
+  doorZones: { z: { X: number; Y: number; W: number; H: number } }[];
 }
 
 export const StaticObjectShape: React.FC<Props> = ({
@@ -36,6 +40,7 @@ export const StaticObjectShape: React.FC<Props> = ({
   onTransformEnd,
   setRef,
   zoom,
+  doorZones,
 }) => {
   const x = baseX + object.rect.X * mm2px;
   const y = baseY + object.rect.Y * mm2px;
@@ -62,6 +67,7 @@ export const StaticObjectShape: React.FC<Props> = ({
 
   const fontSizeFor = () =>
     selected ? 12 : Math.max(9, Math.min(12, 9 + (zoom - 1) * 3));
+  const last = React.useRef({ x, y });
 
   return (
     <>
@@ -76,8 +82,17 @@ export const StaticObjectShape: React.FC<Props> = ({
         strokeWidth={strokeWidth}
         draggable
         dragBoundFunc={(pos) => {
-          const nx = clamp(pos.x, baseX, baseX + roomWpx - w);
-          const ny = clamp(pos.y, baseY, baseY + roomHpx - h);
+          let nx = clamp(pos.x, baseX, baseX + roomWpx - w);
+          let ny = clamp(pos.y, baseY, baseY + roomHpx - h);
+          const rect = {
+            X: Math.round((nx - baseX) / mm2px),
+            Y: Math.round((ny - baseY) / mm2px),
+            W: object.rect.W,
+            H: object.rect.H,
+          };
+          const hit = doorZones.some(({ z }) => rIntersects(rect, z));
+          if (hit) return last.current;
+          last.current = { x: nx, y: ny };
           return { x: nx, y: ny };
         }}
         onClick={onClick}
