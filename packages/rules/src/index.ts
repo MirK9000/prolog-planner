@@ -1,10 +1,34 @@
 
 import type { Plan, Issue, Rect, Size, StaticObject } from '@planner/shared';
-import { rectIntersects, rectInside, isOnWall, distanceRectToRect,  } from '@planner/geometry';
+import { rectIntersects, rectInside, isOnWall, distanceRectToRect } from '@planner/geometry';
 
 export type Rule = (plan: Plan) => Issue[];
 
 const byType = (plan: Plan, t: string) => plan.objects.filter(o => o.type === t);
+
+
+/**
+ * Вычисляет запретную зону перед дверью.
+ * Зона создается "внутрь" помещения от стены, на которой стоит дверь.
+ */
+const getDoorExclusionZone = (door: StaticObject, room: Size): Rect | null => {
+  const { X, Y, W, H } = door.rect;
+  const depth = 1200; // 1.2 метра согласно нормам
+
+  // Дверь на верхней стене (Y=0) -> зона идет вниз
+  if (Y === 0) return { X, Y, W, H: depth };
+  // Дверь на нижней стене -> зона идет вверх
+  if (Y + H === room.H) return { X, Y: Y - depth, W, H: depth };
+  // Дверь на левой стене (X=0) -> зона идет вправо
+  if (X === 0) return { X, Y, W: depth, H };
+  // Дверь на правой стене -> зона идет влево
+  if (X + W === room.W) return { X: X - depth, Y, W: depth, H };
+
+  return null; // Дверь не на стене, зону не определить
+};
+
+
+
 
 export const ruleOutOfBounds: Rule = (plan) =>
   plan.objects
@@ -40,6 +64,39 @@ export const ruleIntersections: Rule = (plan) => {
   }
   return issues;
 };
+
+
+/**
+ * Новое правило: Проверяет, что никто не блокирует свободное пространство перед дверью.
+ */
+export const ruleDoorAccessBlocked: Rule = (plan) => {
+    const issues: Issue[] = [];
+    const doors = byType(plan, 'door');
+    const obstacles = plan.objects.filter(o => o.type !== 'door');
+
+    for (const door of doors) {
+        // Проверяем только эвакуационные выходы
+        const isEvacuation = door.properties.some(p => p.kind === 'status' && p.value === 'evacuation');
+        if (!isEvacuation) continue;
+
+        const zone = getDoorExclusionZone(door, plan.room);
+        if (!zone) continue;
+
+        for (const obstacle of obstacles) {
+            if (rectIntersects(obstacle.rect, zone)) {
+                issues.push({
+                    code: 'DOOR_ACCESS_BLOCKED',
+                    severity: 'error',
+                    message: `Объект ${obstacle.id} блокирует доступ к двери ${door.id}`,
+                    objectId: obstacle.id,
+                    where: obstacle.rect
+                });
+            }
+        }
+    }
+    return issues;
+};
+
 
 export const ruleWindowsOnWall: Rule = (plan) =>
   byType(plan, 'window')
@@ -105,6 +162,7 @@ export const ruleExtinguisherCoverage: Rule = (plan) => {
   return issues;
 };
 
+
 export const runAllBasicRules: Rule = (plan) => [
   ...ruleOutOfBounds(plan),
   ...ruleIntersections(plan),
@@ -113,4 +171,5 @@ export const runAllBasicRules: Rule = (plan) => [
   ...ruleDoorWidth(plan),
   ...ruleExtinguisherMinCount(plan),
   ...ruleExtinguisherCoverage(plan),
+  ...ruleDoorAccessBlocked(plan),
 ];
