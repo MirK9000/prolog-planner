@@ -12,12 +12,12 @@ import {
   DEFAULT_SIZE_MM,
   REQUIRES_WALL,
 } from './editor/config';
-import { rIntersects, computeDoorZone } from './editor/doorZone';
+import { rIntersects, computeDoorZone, computeEquipmentZone } from './editor/doorZone';
 import { useContainerSize, useEditorHotkeys, View } from './editor/hooks';
 import {
   Grid,
   Room,
-  DoorZones,
+  ForbiddenZones,
   StaticObjectShape,
   PlacementGhost,
   MeasurementOverlay,
@@ -107,8 +107,8 @@ export const EditorCanvas: React.FC = () => {
   const zoomAtCenter = React.useCallback(
     (factor: number) => {
       const stage = stageRef.current as any;
-      const sx = stage?.width() / 2 ?? size.w / 2;
-      const sy = stage?.height() / 2 ?? size.h / 2;
+      const sx = (stage?.width() ?? size.w) / 2;
+      const sy = (stage?.height() ?? size.h) / 2;
       zoomAt(sx, sy, factor);
     },
     [size.w, size.h, zoomAt]
@@ -142,12 +142,17 @@ export const EditorCanvas: React.FC = () => {
   const roomWpx = plan.room.W * mm2px;
   const roomHpx = plan.room.H * mm2px;
 
-  // ======= запретные зоны перед дверями (мм) =======
-  const doorZonesMm = React.useMemo(() => {
-    return plan.objects
+  // ======= запретные зоны (двери и оборудование) в мм =======
+  const forbiddenZonesMm = React.useMemo(() => {
+    const doorZones = plan.objects
       .filter((o) => o.type === 'door')
       .map((d) => ({ id: d.id, z: computeDoorZone(plan.room, d.rect) }))
-      .filter((x) => !!x.z) as {
+      .filter((x) => !!x.z);
+    const equipZones = plan.objects
+      .filter((o) => o.type === 'electrical_shield' || o.type === 'net_cabinet')
+      .map((e) => ({ id: e.id, z: computeEquipmentZone(plan.room, e.rect) }))
+      .filter((x) => !!x.z);
+    return [...doorZones, ...equipZones] as {
       id: string;
       z: { X: number; Y: number; W: number; H: number };
     }[];
@@ -216,13 +221,13 @@ export const EditorCanvas: React.FC = () => {
   const handleClick = () => {
     if (!placingType || !ghost) return;
     // запретить размещение в зоне перед дверью
-    const conflict = doorZonesMm.some(({ z }) => rIntersects(ghost, z));
+    const conflict = forbiddenZonesMm.some(({ z }) => rIntersects(ghost, z));
     if (conflict) return;
 
     const id = nextIdForType(placingType); // короткий последовательный id
     const obj: StaticObject = {
       id,
-      type: placingType,
+      type: placingType as StaticObject['type'],
       rect: { ...ghost },
       properties: [],
       requiresWallAnchor: REQUIRES_WALL.has(placingType),
@@ -264,7 +269,7 @@ export const EditorCanvas: React.FC = () => {
       snappedY = snap(mmY, GRID_MM);
 
     const newRect = { X: snappedX, Y: snappedY, W: o.rect.W, H: o.rect.H };
-    const hit = doorZonesMm
+    const hit = forbiddenZonesMm
       .filter(({ id }) => id !== o.id)
       .some(({ z }) => rIntersects(newRect, z));
     if (hit) {
@@ -315,7 +320,7 @@ export const EditorCanvas: React.FC = () => {
       X: Math.round((node.x() - baseX) / mm2px),
       Y: Math.round((node.y() - baseY) / mm2px),
     };
-    const hit = doorZonesMm
+    const hit = forbiddenZonesMm
       .filter(({ id }) => id !== o.id)
       .some(({ z }) => rIntersects(newRect, z));
     if (hit) {
@@ -359,19 +364,19 @@ export const EditorCanvas: React.FC = () => {
         W: Math.round(w / mm2px),
         H: Math.round(h / mm2px),
       };
-      const hit = doorZonesMm
+      const hit = forbiddenZonesMm
         .filter(({ id }) => id !== selectedId)
         .some(({ z }) => rIntersects(rect, z));
       if (hit) return oldBox;
       return { ...newBox, x, y, width: w, height: h };
     },
-    [MIN_PX, baseX, baseY, roomWpx, roomHpx, mm2px, doorZonesMm, selectedId]
+    [MIN_PX, baseX, baseY, roomWpx, roomHpx, mm2px, forbiddenZonesMm, selectedId]
   );
 
 
   // «призрак» нельзя ставить в запретную зону
   const ghostForbidden =
-    !!ghost && doorZonesMm.some(({ z }) => rIntersects(ghost, z));
+    !!ghost && forbiddenZonesMm.some(({ z }) => rIntersects(ghost, z));
 
   return (
     <div
@@ -416,7 +421,7 @@ export const EditorCanvas: React.FC = () => {
             grid={GRID_MM}
           />
           <Room baseX={baseX} baseY={baseY} roomWpx={roomWpx} roomHpx={roomHpx} />
-          <DoorZones zones={doorZonesMm} baseX={baseX} baseY={baseY} mm2px={mm2px} />
+          <ForbiddenZones zones={forbiddenZonesMm} baseX={baseX} baseY={baseY} mm2px={mm2px} />
 
           {plan.objects.map((o) => (
             <StaticObjectShape
@@ -437,7 +442,7 @@ export const EditorCanvas: React.FC = () => {
                 if (ref) shapeRefs.current[o.id] = ref;
               }}
               zoom={view.zoom}
-              doorZones={doorZonesMm.filter(({ id }) => id !== o.id)}
+              forbiddenZones={forbiddenZonesMm.filter(({ id }) => id !== o.id)}
             />
           ))}
 

@@ -2,6 +2,7 @@
 import type { Rect, Size } from '@planner/shared';
 
 export const DOOR_CLEAR_FACTOR = 1.5; // квадрат со стороной 1.5*W двери, направлен внутрь
+export const EQUIP_CLEAR_DEPTH = 1000; // свободная зона перед оборудованием (мм)
 
 // пересечение прямоугольников (мм)
 export const rIntersects = (a: Rect, b: Rect) =>
@@ -54,5 +55,19 @@ export const computeDoorZone = (
       H: Math.min(side, room.H - H),
     };
   }
+  return null;
+};
+
+// зона свободного доступа для оборудования, примыкающего к стене
+export const computeEquipmentZone = (
+  room: { W: number; H: number },
+  rect: { X: number; Y: number; W: number; H: number }
+) => {
+  const { X, Y, W, H } = rect;
+  const d = EQUIP_CLEAR_DEPTH;
+  if (Y === 0) return { X, Y: Y + H, W, H: d }; // верхняя стена → вниз
+  if (Y + H === room.H) return { X, Y: Y - d, W, H: d }; // нижняя стена → вверх
+  if (X === 0) return { X: X + W, Y, W: d, H }; // левая стена → вправо
+  if (X + W === room.W) return { X: X - d, Y, W: d, H }; // правая стена → влево
   return null;
 };
