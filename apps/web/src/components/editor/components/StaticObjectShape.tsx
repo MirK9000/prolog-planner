@@ -3,7 +3,9 @@ import { Rect, Text } from 'react-konva';
 import { clamp } from '@planner/geometry';
 import type { StaticObject } from '@planner/shared';
 import { TYPE_COLOR, TYPE_LABEL, TYPE_SHORT } from '../config';
+
 import { rIntersects } from '../doorZone';
+
 
 interface Props {
   object: StaticObject;
@@ -65,7 +67,6 @@ export const StaticObjectShape: React.FC<Props> = ({
 
   const fontSizeFor = () =>
     selected ? 12 : Math.max(9, Math.min(12, 9 + (zoom - 1) * 3));
-
   const last = React.useRef({ x, y });
 
   return (
