@@ -23,6 +23,7 @@ import {
   MeasurementOverlay,
 } from './editor/components';
 
+
 export const EditorCanvas: React.FC = () => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const stageRef = React.useRef<any>(null);
@@ -342,7 +343,6 @@ export const EditorCanvas: React.FC = () => {
     [MIN_PX, baseX, baseY, roomWpx, roomHpx]
   );
 
-  // ======= Измерительный оверлей для выделенного объекта =======
 
   // «призрак» нельзя ставить в запретную зону
   const ghostForbidden =
