@@ -12,7 +12,7 @@ interface Props {
   mm2px: number;
 }
 
-export const DoorZones: React.FC<Props> = ({ zones, baseX, baseY, mm2px }) => (
+export const ForbiddenZones: React.FC<Props> = ({ zones, baseX, baseY, mm2px }) => (
   <>
     {zones.map(({ id, z }) => (
       <Rect

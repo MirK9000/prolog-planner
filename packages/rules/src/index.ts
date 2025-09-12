@@ -10,15 +10,25 @@ const byType = (plan: Plan, t: string) => plan.objects.filter(o => o.type === t)
 export const REQUIRES_WALL_ANCHOR = new Set(['door', 'window']);
 
 export const computeDoorZone = (room: Size, doorRect: Rect): Rect | null => {
-    const { X, Y, W, H } = doorRect;
-    const depth = 1200;
+  const { X, Y, W, H } = doorRect;
+  const depth = 1200;
 
-    if (Y === 0) return { X, Y, W, H: depth };
-    if (Y + H === room.H) return { X, Y: Y - depth, W, H: depth };
-    if (X === 0) return { X, Y, W: depth, H };
-    if (X + W === room.W) return { X: X - depth, Y, W: depth, H };
+  if (Y === 0) return { X, Y, W, H: depth };
+  if (Y + H === room.H) return { X, Y: Y - depth, W, H: depth };
+  if (X === 0) return { X, Y, W: depth, H };
+  if (X + W === room.W) return { X: X - depth, Y, W: depth, H };
 
-    return null;
+  return null;
+};
+
+export const computeEquipmentZone = (room: Size, rect: Rect): Rect | null => {
+  const { X, Y, W, H } = rect;
+  const depth = 1000;
+  if (Y === 0) return { X, Y: Y + H, W, H: depth };
+  if (Y + H === room.H) return { X, Y: Y - depth, W, H: depth };
+  if (X === 0) return { X: X + W, Y, W: depth, H };
+  if (X + W === room.W) return { X: X - depth, Y, W: depth, H };
+  return null;
 };
 
 
@@ -126,6 +136,35 @@ export const ruleExtinguisherCoverage: Rule = (plan) => {
   return issues;
 };
 
+export const ruleEquipmentAccess: Rule = (plan) => {
+  const types = new Set(['electrical_shield', 'net_cabinet']);
+  const zones = plan.objects
+    .filter(o => types.has(o.type))
+    .map(o => ({ id: o.id, z: computeEquipmentZone(plan.room, o.rect) }))
+    .filter((x): x is { id: string; z: Rect } => !!x.z);
+  const issues: Issue[] = [];
+  for (const { id, z } of zones) {
+    for (const o of plan.objects) {
+      if (o.id === id) continue;
+      if (rectIntersects(o.rect, z)) {
+        issues.push({
+          code: 'EQUIPMENT_ACCESS_CONFLICT',
+          severity: 'error' as const,
+          message: `Зона доступа к оборудованию ${id} перекрыта объектом ${o.id}`,
+          objectId: o.id,
+          where: {
+            X: Math.max(o.rect.X, z.X),
+            Y: Math.max(o.rect.Y, z.Y),
+            W: Math.min(o.rect.X + o.rect.W, z.X + z.W) - Math.max(o.rect.X, z.X),
+            H: Math.min(o.rect.Y + o.rect.H, z.Y + z.H) - Math.max(o.rect.Y, z.Y),
+          },
+        });
+      }
+    }
+  }
+  return issues;
+};
+
 
 export const runAllBasicRules: Rule = (plan) => [
   ...ruleOutOfBounds(plan),
@@ -135,4 +174,5 @@ export const runAllBasicRules: Rule = (plan) => [
   ...ruleDoorWidth(plan),
   ...ruleExtinguisherMinCount(plan),
   ...ruleExtinguisherCoverage(plan),
+  ...ruleEquipmentAccess(plan),
 ];

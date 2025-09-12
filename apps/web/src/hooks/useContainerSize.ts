@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 
-export const useContainerSize = (ref: React.RefObject<HTMLDivElement>) => {
+export const useContainerSize = (ref: React.RefObject<HTMLDivElement | null>) => {
   const [size, setSize] = React.useState({ w: 800, h: 600 });
   React.useLayoutEffect(() => {
     const el = ref.current;

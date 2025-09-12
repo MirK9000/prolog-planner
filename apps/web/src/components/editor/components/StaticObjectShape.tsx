@@ -22,7 +22,7 @@ interface Props {
   onTransformEnd: () => void;
   setRef: (ref: any) => void;
   zoom: number;
-  doorZones: { z: { X: number; Y: number; W: number; H: number } }[];
+  forbiddenZones: { z: { X: number; Y: number; W: number; H: number } }[];
 }
 
 export const StaticObjectShape: React.FC<Props> = ({
@@ -40,7 +40,7 @@ export const StaticObjectShape: React.FC<Props> = ({
   onTransformEnd,
   setRef,
   zoom,
-  doorZones,
+  forbiddenZones,
 }) => {
   const x = baseX + object.rect.X * mm2px;
   const y = baseY + object.rect.Y * mm2px;
@@ -90,7 +90,7 @@ export const StaticObjectShape: React.FC<Props> = ({
             W: object.rect.W,
             H: object.rect.H,
           };
-          const hit = doorZones.some(({ z }) => rIntersects(rect, z));
+          const hit = forbiddenZones.some(({ z }) => rIntersects(rect, z));
           if (hit) return last.current;
           last.current = { x: nx, y: ny };
           return { x: nx, y: ny };
