@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { Stage, Layer, Rect, Transformer, Line, Text } from 'react-konva';
+import { Stage, Layer, Transformer } from 'react-konva';
 import type { StaticObject } from '@planner/shared';
 import { usePlanStore } from '../store/planStore';
 import { clamp, snap } from '@planner/geometry';
@@ -9,17 +9,20 @@ import {
   GRID_MM,
   MIN_SIZE_MM,
   PADDING_PX,
-  TYPE_LABEL,
-  TYPE_SHORT,
-  TYPE_COLOR,
   DEFAULT_SIZE_MM,
   REQUIRES_WALL,
-} from './canvasConstants';
-import { rIntersects, computeDoorZone } from './doorZone';
-import { useContainerSize } from '../hooks/useContainerSize';
-import { MeasurementOverlay } from './MeasurementOverlay';
+} from './editor/config';
+import { rIntersects, computeDoorZone } from './editor/doorZone';
+import { useContainerSize, useEditorHotkeys, View } from './editor/hooks';
+import {
+  Grid,
+  Room,
+  DoorZones,
+  StaticObjectShape,
+  PlacementGhost,
+  MeasurementOverlay,
+} from './editor/components';
 
-type View = { zoom: number; panX: number; panY: number };
 
 export const EditorCanvas: React.FC = () => {
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -60,7 +63,6 @@ export const EditorCanvas: React.FC = () => {
     panX: number;
     panY: number;
   } | null>(null);
-  const spacePressed = React.useRef(false);
 
   // «живой» бокс и «призрак»
   const [liveBox, setLiveBox] = React.useState<{
@@ -112,46 +114,7 @@ export const EditorCanvas: React.FC = () => {
     [size.w, size.h, zoomAt]
   );
 
-  React.useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
-        spacePressed.current = true;
-      }
-      if ((e.key === '+' || e.key === '=') && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        zoomAtCenter(1.1);
-      }
-      if (e.key === '-' && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        zoomAtCenter(1 / 1.1);
-      }
-      if (e.key === '0') {
-        e.preventDefault();
-        setView({ zoom: 1, panX: 0, panY: 0 });
-      }
-      if (e.key.toLowerCase() === 'f') {
-        e.preventDefault();
-        setView({ zoom: 1, panX: 0, panY: 0 });
-      }
-      if (e.key === 'Escape') {
-        setPlacingType(undefined);
-        setGhost(null);
-      }
-      if ((e.key === 'Delete' || e.key === 'Backspace') && !placingType) {
-        e.preventDefault();
-        deleteSelected();
-      }
-    };
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'Space') spacePressed.current = false;
-    };
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-    };
-  }, [zoomAtCenter, setPlacingType, deleteSelected, placingType]);
+  const spacePressed = useEditorHotkeys(zoomAtCenter, setView, setGhost);
 
   // Завершать пан при mouseup/blur
   React.useEffect(() => {
@@ -363,32 +326,6 @@ export const EditorCanvas: React.FC = () => {
     }
   }, [selectedId, trRef, view.zoom, view.panX, view.panY]);
 
-  // сетка
-  const Grid: React.FC = () => {
-    const lines = [];
-    for (let mm = 0; mm <= plan.room.W; mm += GRID_MM) {
-      const x = baseX + mm * mm2px;
-      lines.push(
-        <Line
-          key={'v' + mm}
-          points={[x, baseY, x, baseY + roomHpx]}
-          stroke="#eee"
-        />
-      );
-    }
-    for (let mm = 0; mm <= plan.room.H; mm += GRID_MM) {
-      const y = baseY + mm * mm2px;
-      lines.push(
-        <Line
-          key={'h' + mm}
-          points={[baseX, y, baseX + roomWpx, y]}
-          stroke="#eee"
-        />
-      );
-    }
-    return <>{lines}</>;
-  };
-
   // ограничения трансформера
   const MIN_PX = MIN_SIZE_MM * mm2px;
   const trBoundBox = React.useCallback(
@@ -406,16 +343,6 @@ export const EditorCanvas: React.FC = () => {
     [MIN_PX, baseX, baseY, roomWpx, roomHpx]
   );
 
-  // ======= Измерительный оверлей для выделенного объекта =======
-
-  // ——— Правила отображения подписи внутри объекта ———
-  const shouldShowLabel = (selected: boolean, w: number, h: number) => {
-    if (selected) return true; // всегда для выделенного
-    if (view.zoom < 0.45) return false; // слишком далеко — не показывать
-    return w >= 50 && h >= 26; // объект достаточно крупный в px
-  };
-  const fontSizeFor = (selected: boolean) =>
-    selected ? 12 : Math.max(9, Math.min(12, 9 + (view.zoom - 1) * 3));
 
   // «призрак» нельзя ставить в запретную зону
   const ghostForbidden =
@@ -456,96 +383,37 @@ export const EditorCanvas: React.FC = () => {
         }}
       >
         <Layer>
-          <Grid />
-          {/* Комната */}
-          <Rect
-            x={baseX}
-            y={baseY}
-            width={roomWpx}
-            height={roomHpx}
-            stroke="#999"
+          <Grid
+            baseX={baseX}
+            baseY={baseY}
+            room={plan.room}
+            mm2px={mm2px}
+            grid={GRID_MM}
           />
+          <Room baseX={baseX} baseY={baseY} roomWpx={roomWpx} roomHpx={roomHpx} />
+          <DoorZones zones={doorZonesMm} baseX={baseX} baseY={baseY} mm2px={mm2px} />
 
-          {/* Запретные зоны перед дверями */}
-          {doorZonesMm.map(({ id, z }) => (
-            <Rect
-              key={'dz_' + id}
-              x={baseX + z.X * mm2px}
-              y={baseY + z.Y * mm2px}
-              width={z.W * mm2px}
-              height={z.H * mm2px}
-              fill="rgba(239,68,68,0.12)"
-              stroke="#ef4444"
-              dash={[6, 4]}
-              listening={false}
+          {plan.objects.map((o) => (
+            <StaticObjectShape
+              key={o.id}
+              object={o}
+              selected={selectedId === o.id}
+              baseX={baseX}
+              baseY={baseY}
+              mm2px={mm2px}
+              roomWpx={roomWpx}
+              roomHpx={roomHpx}
+              onClick={() => setSelected(o.id)}
+              onDragMove={(node) => onDragMoveLive(o, node)}
+              onDragEnd={(x, y) => onDragEnd(o, x, y)}
+              onTransform={(node) => onTransformLive(o, node)}
+              onTransformEnd={() => onTransformEnd(o)}
+              setRef={(ref) => {
+                if (ref) shapeRefs.current[o.id] = ref;
+              }}
+              zoom={view.zoom}
             />
           ))}
-
-          {/* Объекты */}
-          {plan.objects.map((o) => {
-            const x = baseX + o.rect.X * mm2px;
-            const y = baseY + o.rect.Y * mm2px;
-            const w = o.rect.W * mm2px;
-            const h = o.rect.H * mm2px;
-
-            const style = TYPE_COLOR[o.type] || {
-              fill: 'rgba(99,102,241,0.08)',
-              stroke: '#6b7280',
-            };
-            const selected = selectedId === o.id;
-            const stroke = selected ? '#6366f1' : style.stroke;
-            const strokeWidth = selected ? 2 : 1;
-            const fill = style.fill;
-
-            const mainLabel = selected
-              ? `${TYPE_LABEL[o.type] ?? o.type} · ${o.id}`
-              : TYPE_SHORT[o.type] ?? TYPE_LABEL[o.type] ?? o.type;
-
-            return (
-              <React.Fragment key={o.id}>
-                <Rect
-                  ref={(ref) => {
-                    if (ref) shapeRefs.current[o.id] = ref;
-                  }}
-                  x={x}
-                  y={y}
-                  width={w}
-                  height={h}
-                  fill={fill}
-                  stroke={stroke}
-                  strokeWidth={strokeWidth}
-                  draggable
-                  dragBoundFunc={(pos) => {
-                    const nx = clamp(pos.x, baseX, baseX + roomWpx - w);
-                    const ny = clamp(pos.y, baseY, baseY + roomHpx - h);
-                    return { x: nx, y: ny };
-                  }}
-                  onClick={() => setSelected(o.id)}
-                  onDragMove={(e) => onDragMoveLive(o, e.target)}
-                  onDragEnd={(e) =>
-                    onDragEnd(o, e.target.x(), e.target.y())
-                  }
-                  onTransform={(e) => onTransformLive(o, e.target)}
-                  onTransformEnd={() => onTransformEnd(o)}
-                />
-
-                {/* компактная подпись внутри фигуры */}
-                {shouldShowLabel(selected, w, h) && (
-                  <Text
-                    text={mainLabel}
-                    x={x + 6}
-                    y={y + 4}
-                    fontSize={fontSizeFor(selected)}
-                    fill="#111"
-                    listening={false}
-                    shadowColor="#fff"
-                    shadowBlur={3}
-                    shadowOpacity={1}
-                  />
-                )}
-              </React.Fragment>
-            );
-          })}
 
           <Transformer
             ref={setTrRef as any}
@@ -565,20 +433,13 @@ export const EditorCanvas: React.FC = () => {
             boundBoxFunc={trBoundBox}
           />
 
-          {/* Призрак размещаемого объекта */}
-          {placingType && ghost && (
-            <Rect
-              x={baseX + ghost.X * mm2px}
-              y={baseY + ghost.Y * mm2px}
-              width={ghost.W * mm2px}
-              height={ghost.H * mm2px}
-              fill={ghostForbidden ? 'rgba(239,68,68,0.25)' : 'rgba(34,197,94,0.2)'}
-              stroke={ghostForbidden ? '#ef4444' : '#16a34a'}
-              strokeWidth={2}
-              dash={[6, 4]}
-              listening={false}
-            />
-          )}
+          <PlacementGhost
+            ghost={placingType ? ghost : null}
+            baseX={baseX}
+            baseY={baseY}
+            mm2px={mm2px}
+            forbidden={ghostForbidden}
+          />
         </Layer>
 
         {/* Верхний слой: измерительный оверлей */}
