@@ -53,7 +53,7 @@ function initCounters(objects: StaticObject[]) {
 export const usePlanStore = create<State>((set, get) => ({
   plan: {
     // Default room plan
-    room: { W: 10000, H: 8000 },
+    room: { W: 10000, H: 7000 },
     objects: [
       { id: 'cab-2', type: 'cabinet', rect: { X: 3900, Y: 6400, W: 1400, H: 600 }, properties: [], requiresWallAnchor: true },
       { id: 'cab-3', type: 'cabinet', rect: { X: 5500, Y: 6400, W: 1300, H: 600 }, properties: [], requiresWallAnchor: true },
