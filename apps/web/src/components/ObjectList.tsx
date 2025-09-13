@@ -37,7 +37,7 @@ const TYPE_COLOR: Record<string, { fill: string; stroke: string }> = {
 const fmtM2 = (mm2: number) => (mm2 / 1_000_000).toFixed(2); // м² из мм²
 
 export const ObjectList: React.FC = () => {
-  const { plan, selectedId, setSelected, deleteObject } = usePlanStore();
+  const { plan, selectedId, setSelected, deleteObject, setProperty } = usePlanStore();
   const [q, setQ] = React.useState('');
 
   const rows = React.useMemo(() => {
@@ -100,6 +100,8 @@ export const ObjectList: React.FC = () => {
               <th style={th}>Y (мм)</th>
               <th style={th}>W (мм)</th>
               <th style={th}>H (мм)</th>
+              <th style={th}>R (мм)</th>
+              <th style={th}>Емк.</th>
               <th style={th}>Площадь (м²)</th>
               <th style={th}>Нужна привязка</th>
               <th style={th}>На стене</th>
@@ -111,6 +113,8 @@ export const ObjectList: React.FC = () => {
               const color = TYPE_COLOR[o.type]?.stroke ?? '#6b7280';
               const onWall = isOnWall(o.rect, plan.room);
               const sel = selectedId === o.id;
+              const radius = o.properties.find(p => p.kind === 'radius')?.value ?? 0;
+              const capacity = o.properties.find(p => p.kind === 'capacity')?.value ?? 0;
               return (
                 <tr
                   key={o.id}
@@ -134,6 +138,26 @@ export const ObjectList: React.FC = () => {
                   <td style={tdNum}>{o.rect.Y}</td>
                   <td style={tdNum}>{o.rect.W}</td>
                   <td style={tdNum}>{o.rect.H}</td>
+                  <td style={tdNum}>
+                    {o.type === 'comms_block' && (
+                      <input
+                        type="number"
+                        value={radius}
+                        onChange={e => setProperty(o.id, { kind: 'radius', value: Number(e.target.value) })}
+                        style={{ width: 60, padding: '2px 4px', border: '1px solid #ddd', borderRadius: 4 }}
+                      />
+                    )}
+                  </td>
+                  <td style={tdNum}>
+                    {o.type === 'comms_block' && (
+                      <input
+                        type="number"
+                        value={capacity}
+                        onChange={e => setProperty(o.id, { kind: 'capacity', value: Number(e.target.value) })}
+                        style={{ width: 40, padding: '2px 4px', border: '1px solid #ddd', borderRadius: 4 }}
+                      />
+                    )}
+                  </td>
                   <td style={tdNum}>{fmtM2(o.rect.W * o.rect.H)}</td>
                   <td style={td}>{o.requiresWallAnchor ? 'Да' : 'Нет'}</td>
                   <td style={{ ...td, color: onWall ? '#16a34a' : '#ef4444' }}>{onWall ? 'Да' : 'Нет'}</td>
@@ -163,7 +187,7 @@ export const ObjectList: React.FC = () => {
               );
             })}
             {!rows.length && (
-              <tr><td colSpan={10} style={{ padding: 12, color: '#6b7280' }}>Ничего не найдено…</td></tr>
+              <tr><td colSpan={12} style={{ padding: 12, color: '#6b7280' }}>Ничего не найдено…</td></tr>
             )}
           </tbody>
         </table>

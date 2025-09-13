@@ -21,6 +21,7 @@ import {
   StaticObjectShape,
   PlacementGhost,
   MeasurementOverlay,
+  CommsRadius,
 } from './editor/components';
 
 
@@ -229,7 +230,13 @@ export const EditorCanvas: React.FC = () => {
       id,
       type: placingType as StaticObject['type'],
       rect: { ...ghost },
-      properties: [],
+      properties:
+        placingType === 'comms_block'
+          ? [
+              { kind: 'capacity', value: 8 },
+              { kind: 'radius', value: 5000 },
+            ]
+          : [],
       requiresWallAnchor: REQUIRES_WALL.has(placingType),
     };
     addObject(obj);
@@ -413,20 +420,26 @@ export const EditorCanvas: React.FC = () => {
         }}
       >
         <Layer>
-          <Grid
-            baseX={baseX}
-            baseY={baseY}
-            room={plan.room}
-            mm2px={mm2px}
-            grid={GRID_MM}
-          />
-          <Room baseX={baseX} baseY={baseY} roomWpx={roomWpx} roomHpx={roomHpx} />
-          <ForbiddenZones zones={forbiddenZonesMm} baseX={baseX} baseY={baseY} mm2px={mm2px} />
+            <Grid
+              baseX={baseX}
+              baseY={baseY}
+              room={plan.room}
+              mm2px={mm2px}
+              grid={GRID_MM}
+            />
+            <Room baseX={baseX} baseY={baseY} roomWpx={roomWpx} roomHpx={roomHpx} />
+            <ForbiddenZones zones={forbiddenZonesMm} baseX={baseX} baseY={baseY} mm2px={mm2px} />
+            <CommsRadius
+              objects={plan.objects.filter(o => o.type === 'comms_block')}
+              baseX={baseX}
+              baseY={baseY}
+              mm2px={mm2px}
+            />
 
-          {plan.objects.map((o) => (
-            <StaticObjectShape
-              key={o.id}
-              object={o}
+            {plan.objects.map((o) => (
+              <StaticObjectShape
+                key={o.id}
+                object={o}
               selected={selectedId === o.id}
               baseX={baseX}
               baseY={baseY}
