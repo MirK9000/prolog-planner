@@ -1,6 +1,6 @@
 'use client';
 import { create } from 'zustand';
-import type { Plan, StaticObject, Issue, Size } from '@planner/shared';
+import type { Plan, StaticObject, Issue, Size, Property } from '@planner/shared';
 
 // аббревиатуры для id
 const TYPE_ABBR: Record<string, string> = {
@@ -28,6 +28,7 @@ type State = {
 
   updateObject: (id: string, patch: Partial<StaticObject['rect']>) => void;
   updateRoom: (patch: Partial<Size>) => void;
+  setProperty: (id: string, prop: Property) => void;
 
   // создание / удаление
   addObject: (o: StaticObject) => void;
@@ -85,6 +86,17 @@ export const usePlanStore = create<State>((set, get) => ({
   })),
 
   updateRoom: (patch) => set(s => ({ plan: { ...s.plan, room: { ...s.plan.room, ...patch } } })),
+
+  setProperty: (id, prop) => set(s => ({
+    plan: {
+      ...s.plan,
+      objects: s.plan.objects.map(o =>
+        o.id === id
+          ? { ...o, properties: [...o.properties.filter(p => p.kind !== prop.kind), prop] }
+          : o
+      ),
+    },
+  })),
 
   // последовательные id вида "<abbr>-<n>"
   nextIdForType: (type: string) => {
