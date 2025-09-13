@@ -48,9 +48,12 @@ const PropInput: React.FC<{ id: string; kind: 'radius' | 'capacity'; initial: nu
 
   return (
     <input
-      type="number"
+      type="text"
+      inputMode="numeric"
       value={val}
       onChange={e => setVal(e.target.value)}
+      onClick={e => e.stopPropagation()}
+      onPointerDown={e => e.stopPropagation()}
       onBlur={commit}
       onKeyDown={e => { if (e.key === 'Enter') commit(); }}
       style={{ width, padding: '2px 4px', border: '1px solid #ddd', borderRadius: 4 }}
