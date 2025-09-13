@@ -2,6 +2,7 @@
 import React from 'react';
 import { usePlanStore } from '../store/planStore';
 import { isOnWall } from '@planner/geometry';
+import type { Property } from '@planner/shared';
 
 // подписи типов (RU)
 const TYPE_LABEL: Record<string, string> = {
@@ -36,19 +37,19 @@ const TYPE_COLOR: Record<string, { fill: string; stroke: string }> = {
 const fmtM2 = (mm2: number) => (mm2 / 1_000_000).toFixed(2); // м² из мм²
 
 const PropInput: React.FC<{ id: string; kind: 'radius' | 'capacity'; initial: number; width: number }> = ({ id, kind, initial, width }) => {
-  const { setProperty } = usePlanStore();
+  const setProperty = usePlanStore(s => s.setProperty);
   const [val, setVal] = React.useState(initial.toString());
 
   React.useEffect(() => { setVal(initial.toString()); }, [initial]);
 
   const commit = () => {
-    const n = Number(val);
+    const n = parseInt(val, 10);
     setProperty(id, { kind, value: isNaN(n) ? 0 : n });
   };
 
   return (
     <input
-      type="text"
+      type="number"
       inputMode="numeric"
       value={val}
       onChange={e => setVal(e.target.value)}
@@ -138,8 +139,10 @@ export const ObjectList: React.FC = () => {
               const color = TYPE_COLOR[o.type]?.stroke ?? '#6b7280';
               const onWall = isOnWall(o.rect, plan.room);
               const sel = selectedId === o.id;
-              const radius = o.properties.find(p => p.kind === 'radius')?.value ?? 0;
-              const capacity = o.properties.find(p => p.kind === 'capacity')?.value ?? 0;
+              const radiusProp = o.properties.find((p): p is Extract<Property, { kind: 'radius' }> => p.kind === 'radius');
+              const radius = radiusProp?.value ?? 0;
+              const capacityProp = o.properties.find((p): p is Extract<Property, { kind: 'capacity' }> => p.kind === 'capacity');
+              const capacity = capacityProp?.value ?? 0;
               return (
                 <tr
                   key={o.id}
