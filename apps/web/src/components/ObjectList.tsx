@@ -1,7 +1,6 @@
 'use client';
 import React from 'react';
 import { usePlanStore } from '../store/planStore';
-import type { StaticObject } from '@planner/shared';
 import { isOnWall } from '@planner/geometry';
 
 // подписи типов (RU)
@@ -36,8 +35,34 @@ const TYPE_COLOR: Record<string, { fill: string; stroke: string }> = {
 
 const fmtM2 = (mm2: number) => (mm2 / 1_000_000).toFixed(2); // м² из мм²
 
+const PropInput: React.FC<{ id: string; kind: 'radius' | 'capacity'; initial: number; width: number }> = ({ id, kind, initial, width }) => {
+  const { setProperty } = usePlanStore();
+  const [val, setVal] = React.useState(initial.toString());
+
+  React.useEffect(() => { setVal(initial.toString()); }, [initial]);
+
+  const commit = () => {
+    const n = Number(val);
+    setProperty(id, { kind, value: isNaN(n) ? 0 : n });
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={val}
+      onChange={e => setVal(e.target.value)}
+      onClick={e => e.stopPropagation()}
+      onPointerDown={e => e.stopPropagation()}
+      onBlur={commit}
+      onKeyDown={e => { if (e.key === 'Enter') commit(); }}
+      style={{ width, padding: '2px 4px', border: '1px solid #ddd', borderRadius: 4 }}
+    />
+  );
+};
+
 export const ObjectList: React.FC = () => {
-  const { plan, selectedId, setSelected, deleteObject, setProperty } = usePlanStore();
+  const { plan, selectedId, setSelected, deleteObject } = usePlanStore();
   const [q, setQ] = React.useState('');
 
   const rows = React.useMemo(() => {
@@ -140,22 +165,12 @@ export const ObjectList: React.FC = () => {
                   <td style={tdNum}>{o.rect.H}</td>
                   <td style={tdNum}>
                     {o.type === 'comms_block' && (
-                      <input
-                        type="number"
-                        value={radius}
-                        onChange={e => setProperty(o.id, { kind: 'radius', value: Number(e.target.value) })}
-                        style={{ width: 60, padding: '2px 4px', border: '1px solid #ddd', borderRadius: 4 }}
-                      />
+                      <PropInput id={o.id} kind="radius" initial={radius} width={60} />
                     )}
                   </td>
                   <td style={tdNum}>
                     {o.type === 'comms_block' && (
-                      <input
-                        type="number"
-                        value={capacity}
-                        onChange={e => setProperty(o.id, { kind: 'capacity', value: Number(e.target.value) })}
-                        style={{ width: 40, padding: '2px 4px', border: '1px solid #ddd', borderRadius: 4 }}
-                      />
+                      <PropInput id={o.id} kind="capacity" initial={capacity} width={40} />
                     )}
                   </td>
                   <td style={tdNum}>{fmtM2(o.rect.W * o.rect.H)}</td>
