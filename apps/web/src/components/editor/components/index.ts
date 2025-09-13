@@ -4,3 +4,4 @@ export { ForbiddenZones } from './ForbiddenZones';
 export { StaticObjectShape } from './StaticObjectShape';
 export { PlacementGhost } from './PlacementGhost';
 export { MeasurementOverlay } from './MeasurementOverlay';
+export { CommsRadius } from './CommsRadius';

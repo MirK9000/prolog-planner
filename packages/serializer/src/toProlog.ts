@@ -3,6 +3,7 @@ import type { Plan, StaticObject } from '@planner/shared';
 
 const propToProlog = (p: StaticObject['properties'][number]): string => {
   if (p.kind === 'capacity') return `capacity(${p.value})`;
+  if (p.kind === 'radius') return `radius(${p.value})`;
   if (p.kind === 'status') return `status(${p.value})`;
   if (p.kind === 'type') return `type(${p.value})`;
   return '';

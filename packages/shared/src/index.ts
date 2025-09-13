@@ -11,6 +11,7 @@ export interface Rect { X: Mm; Y: Mm; W: Mm; H: Mm }
 
 export type Property =
   | { kind: 'capacity'; value: number }
+  | { kind: 'radius'; value: Mm }
   | { kind: 'status'; value: 'evacuation' }
   | { kind: 'type'; value: string };
 
