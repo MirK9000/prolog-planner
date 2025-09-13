@@ -52,22 +52,22 @@ function initCounters(objects: StaticObject[]) {
 
 export const usePlanStore = create<State>((set, get) => ({
   plan: {
-    // Standard Classroom demo plan
+    // Default room plan
     room: { W: 10000, H: 8000 },
     objects: [
-      // door on the bottom wall for evacuation
-      { id: 'door-1', type: 'door', rect: { X: 500, Y: 7800, W: 900, H: 200 }, properties: [{ kind: 'status', value: 'evacuation' }], requiresWallAnchor: true },
-      // two windows on the top wall
-      { id: 'win-1', type: 'window', rect: { X: 1000, Y: 0, W: 2000, H: 200 }, properties: [], requiresWallAnchor: true },
-      { id: 'win-2', type: 'window', rect: { X: 5000, Y: 0, W: 3000, H: 200 }, properties: [], requiresWallAnchor: true },
-      // interior column obstructing the space
-      { id: 'col-1', type: 'column', rect: { X: 4500, Y: 3200, W: 800, H: 800 }, properties: [] },
-      // equipment along the walls
-      { id: 'fe-1', type: 'fire_extinguisher', rect: { X: 1700, Y: 7600, W: 200, H: 200 }, properties: [], requiresWallAnchor: true },
-      { id: 'esh-1', type: 'electrical_shield', rect: { X: 9800, Y: 400, W: 200, H: 300 }, properties: [], requiresWallAnchor: true },
-      { id: 'com-1', type: 'comms_block', rect: { X: 9700, Y: 7700, W: 300, H: 300 }, properties: [], requiresWallAnchor: true },
-      { id: 'net-1', type: 'net_cabinet', rect: { X: 9400, Y: 2500, W: 600, H: 500 }, properties: [], requiresWallAnchor: true },
-      { id: 'cab-1', type: 'cabinet', rect: { X: 0, Y: 2000, W: 500, H: 1500 }, properties: [], requiresWallAnchor: true },
+      { id: 'cab-2', type: 'cabinet', rect: { X: 3900, Y: 6400, W: 1400, H: 600 }, properties: [], requiresWallAnchor: true },
+      { id: 'cab-3', type: 'cabinet', rect: { X: 5500, Y: 6400, W: 1300, H: 600 }, properties: [], requiresWallAnchor: true },
+      { id: 'col-2', type: 'column', rect: { X: 2300, Y: 1800, W: 1000, H: 1000 }, properties: [] },
+      { id: 'col-3', type: 'column', rect: { X: 6700, Y: 1800, W: 1000, H: 1000 }, properties: [] },
+      { id: 'door-2', type: 'door', rect: { X: 1500, Y: 6800, W: 1200, H: 200 }, properties: [], requiresWallAnchor: true },
+      { id: 'esh-2', type: 'electrical_shield', rect: { X: 7300, Y: 6800, W: 800, H: 200 }, properties: [], requiresWallAnchor: true },
+      { id: 'fa-1', type: 'fire_alarm', rect: { X: 900, Y: 6800, W: 200, H: 200 }, properties: [], requiresWallAnchor: true },
+      { id: 'fe-2', type: 'fire_extinguisher', rect: { X: 200, Y: 6500, W: 300, H: 300 }, properties: [] },
+      { id: 'fe-3', type: 'fire_extinguisher', rect: { X: 9500, Y: 6600, W: 300, H: 300 }, properties: [] },
+      { id: 'net-2', type: 'net_cabinet', rect: { X: 8300, Y: 6400, W: 800, H: 600 }, properties: [], requiresWallAnchor: true },
+      { id: 'win-3', type: 'window', rect: { X: 1600, Y: 0, W: 2000, H: 200 }, properties: [], requiresWallAnchor: true },
+      { id: 'win-4', type: 'window', rect: { X: 4100, Y: 0, W: 2000, H: 200 }, properties: [], requiresWallAnchor: true },
+      { id: 'win-5', type: 'window', rect: { X: 6600, Y: 0, W: 2000, H: 200 }, properties: [], requiresWallAnchor: true },
     ],
     task: { count: 12, size: { W: 1200, H: 800 } }
   },
