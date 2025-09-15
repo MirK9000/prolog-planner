@@ -15,7 +15,7 @@ const EditorCanvas = dynamic(
 );
 
 export default function Home() {
-  const { plan, setIssues, issues } = usePlanStore();
+  const { plan, setPlan, setIssues, issues } = usePlanStore();
   const [tab, setTab] = React.useState<'room' | 'objects' | 'issues'>('objects'); // ⬅️ добавили 'room'
 
   const checkPlan = () => setIssues(runAllBasicRules(plan));
@@ -38,6 +38,40 @@ export default function Home() {
     }
   };
 
+  const importSolution = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const desks = Array.isArray(data.desks) ? data.desks : [];
+        const objects = plan.objects.filter(o => o.type !== 'workplace');
+        for (const d of desks) {
+          objects.push({
+            id: d.id ?? usePlanStore.getState().nextIdForType('workplace'),
+            type: 'workplace',
+            rect: { X: d.rect.x, Y: d.rect.y, W: d.rect.w, H: d.rect.h },
+            properties: [],
+          });
+        }
+        let task = plan.task;
+        if (desks.length > 0 && desks[0].base_size) {
+          task = { count: desks.length, size: { W: desks[0].base_size.w, H: desks[0].base_size.h } };
+        }
+        setPlan({ ...plan, objects, task });
+        setTab('objects');
+      } catch (e) {
+        console.error(e);
+        alert('Не удалось прочитать файл решения');
+      }
+    };
+    input.click();
+  };
+
   return (
     <main style={{
       display: 'grid', gridTemplateColumns: '1fr 380px', gap: 16,
@@ -48,6 +82,7 @@ export default function Home() {
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={checkPlan}>Проверить план</button>
             <button onClick={exportPlan}>Экспорт в Prolog</button>
+            <button onClick={importSolution}>Импорт решения</button>
           </div>
           <ObjectPalette /> {/* ⬅️ палитра типов */}
         </div>
