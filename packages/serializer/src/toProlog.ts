@@ -11,12 +11,13 @@ const propToProlog = (p: StaticObject['properties'][number]): string => {
 
 export const toProlog = (plan: Plan): string => {
   const lines: string[] = [];
+  lines.push(':- module(plan, []).', '');
   lines.push(`room(size(${plan.room.W}, ${plan.room.H})).`);
   for (const o of plan.objects) {
     const props = o.properties?.map(propToProlog).filter(Boolean).join(', ');
     const propsList = props ? `[${props}]` : '[]';
     const r = o.rect;
-    lines.push(`static_object(${o.id}, ${o.type}, rect(${r.X}, ${r.Y}, ${r.W}, ${r.H}), ${propsList}).`);
+    lines.push(`static_object('${o.id}', ${o.type}, rect(${r.X}, ${r.Y}, ${r.W}, ${r.H}), ${propsList}).`);
   }
   if (plan.task) {
     lines.push(`\n% task spec`);
