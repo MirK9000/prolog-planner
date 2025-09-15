@@ -24,9 +24,10 @@ export const useContainerSize = (ref: React.RefObject<HTMLDivElement | null>) =>
 export const useEditorHotkeys = (
   zoomAtCenter: (factor: number) => void,
   setView: React.Dispatch<React.SetStateAction<View>>,
-  setGhost: (g: any) => void
+  setGhost: (g: any) => void,
+  updateGhostAt: () => void
 ) => {
-  const { setPlacingType, deleteSelected, placingType } = usePlanStore();
+  const { setPlacingType, deleteSelected, placingType, copySelected, copied } = usePlanStore();
   const spacePressed = React.useRef(false);
 
   React.useEffect(() => {
@@ -54,6 +55,18 @@ export const useEditorHotkeys = (
         e.preventDefault();
         deleteSelected();
       }
+      if ((e.key.toLowerCase() === 'c') && (e.metaKey || e.ctrlKey) && !placingType) {
+        e.preventDefault();
+        copySelected();
+      }
+      if ((e.key.toLowerCase() === 'v') && (e.metaKey || e.ctrlKey)) {
+        if (copied) {
+          e.preventDefault();
+          setPlacingType(copied.type);
+          setGhost({ ...copied.rect });
+          updateGhostAt();
+        }
+      }
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.code === 'Space') spacePressed.current = false;
@@ -64,7 +77,7 @@ export const useEditorHotkeys = (
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [zoomAtCenter, setView, setPlacingType, deleteSelected, placingType, setGhost]);
+  }, [zoomAtCenter, setView, setPlacingType, deleteSelected, placingType, setGhost, updateGhostAt, copySelected, copied]);
 
   return spacePressed;
 };

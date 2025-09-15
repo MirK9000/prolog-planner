@@ -35,6 +35,10 @@ type State = {
   deleteObject: (id: string) => void;
   deleteSelected: () => void;
 
+  // буфер обмена
+  copied?: StaticObject;
+  copySelected: () => void;
+
   // режим размещения
   placingType?: string;
   setPlacingType: (type?: string) => void;
@@ -129,6 +133,15 @@ export const usePlanStore = create<State>((set, get) => ({
 
   placingType: undefined,
   setPlacingType: (type) => set({ placingType: type }),
+
+  copied: undefined,
+  copySelected: () => set(s => {
+    const id = s.selectedId;
+    const obj = s.plan.objects.find(o => o.id === id);
+    return obj
+      ? { copied: { ...obj, rect: { ...obj.rect }, properties: [...obj.properties] } }
+      : {};
+  }),
 
   deleteObject: (id) => set(s => ({
     plan: { ...s.plan, objects: s.plan.objects.filter(o => o.id !== id) },

@@ -40,6 +40,7 @@ export const EditorCanvas: React.FC = () => {
     addObject,
     deleteSelected,
     nextIdForType,
+    copied,
   } = usePlanStore();
 
   // fit без учёта zoom
@@ -115,7 +116,7 @@ export const EditorCanvas: React.FC = () => {
     [size.w, size.h, zoomAt]
   );
 
-  const spacePressed = useEditorHotkeys(zoomAtCenter, setView, setGhost);
+  const spacePressed = useEditorHotkeys(zoomAtCenter, setView, setGhost, updateGhostAt);
 
   // Завершать пан при mouseup/blur
   React.useEffect(() => {
@@ -160,9 +161,9 @@ export const EditorCanvas: React.FC = () => {
   }, [plan]);
 
   // ======= размещение: «призрак» и добавление =======
-  const updateGhostAt = () => {
+  function updateGhostAt() {
     if (!placingType) return;
-    const def = DEFAULT_SIZE_MM[placingType] ?? { W: 1000, H: 1000 };
+    const def = ghost ? { W: ghost.W, H: ghost.H } : DEFAULT_SIZE_MM[placingType] ?? { W: 1000, H: 1000 };
     let W = def.W,
       H = def.H;
     const stage = stageRef.current as any;
@@ -188,7 +189,7 @@ export const EditorCanvas: React.FC = () => {
     X = clamp(X, 0, plan.room.W - W);
     Y = clamp(Y, 0, plan.room.H - H);
     setGhost({ X, Y, W, H });
-  };
+  }
 
   const handleMouseDown = (e: any) => {
     if (placingType) return;
@@ -226,19 +227,24 @@ export const EditorCanvas: React.FC = () => {
     if (conflict) return;
 
     const id = nextIdForType(placingType); // короткий последовательный id
-    const obj: StaticObject = {
-      id,
-      type: placingType as StaticObject['type'],
-      rect: { ...ghost },
-      properties:
-        placingType === 'comms_block'
-          ? [
-              { kind: 'capacity', value: 8 },
-              { kind: 'radius', value: 5000 },
-            ]
-          : [],
-      requiresWallAnchor: REQUIRES_WALL.has(placingType),
-    };
+    let obj: StaticObject;
+    if (copied && copied.type === placingType) {
+      obj = { ...copied, id, rect: { ...ghost } };
+    } else {
+      obj = {
+        id,
+        type: placingType as StaticObject['type'],
+        rect: { ...ghost },
+        properties:
+          placingType === 'comms_block'
+            ? [
+                { kind: 'capacity', value: 8 },
+                { kind: 'radius', value: 5000 },
+              ]
+            : [],
+        requiresWallAnchor: REQUIRES_WALL.has(placingType),
+      };
+    }
     addObject(obj);
     setSelected(id);
   };
