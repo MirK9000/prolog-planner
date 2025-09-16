@@ -1,12 +1,17 @@
 
-import type { Plan, StaticObject } from '@planner/shared';
+import type { Plan, Property } from '@planner/shared';
 
-const propToProlog = (p: StaticObject['properties'][number]): string => {
-  if (p.kind === 'capacity') return `capacity(${p.value})`;
-  if (p.kind === 'radius') return `radius(${p.value})`;
-  if (p.kind === 'status') return `status(${p.value})`;
-  if (p.kind === 'type') return `type(${p.value})`;
-  return '';
+const propToProlog = (p: Property): string => {
+  switch (p.kind) {
+    case 'capacity':
+      return `capacity(${p.value})`;
+    case 'status':
+      return `status(${p.value})`;
+    case 'type':
+      return `type(${p.value})`;
+    default:
+      return '';
+  }
 };
 
 export const toProlog = (plan: Plan): string => {
