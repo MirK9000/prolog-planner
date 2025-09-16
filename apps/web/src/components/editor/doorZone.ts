@@ -1,6 +1,5 @@
 
 import type { Rect, Size } from '@planner/shared';
-export const EQUIP_CLEAR_DEPTH = 1000; // свободная зона перед оборудованием (мм)
 
 // пересечение прямоугольников (мм)
 export const rIntersects = (a: Rect, b: Rect) =>
@@ -58,13 +57,55 @@ export const computeDoorZone = (
 // зона свободного доступа для оборудования, примыкающего к стене
 export const computeEquipmentZone = (
   room: { W: number; H: number },
-  rect: { X: number; Y: number; W: number; H: number }
+  rect: { X: number; Y: number; W: number; H: number },
+  depth: number
 ) => {
   const { X, Y, W, H } = rect;
-  const d = EQUIP_CLEAR_DEPTH;
+  const d = depth;
   if (Y === 0) return { X, Y: Y + H, W, H: d }; // верхняя стена → вниз
   if (Y + H === room.H) return { X, Y: Y - d, W, H: d }; // нижняя стена → вверх
   if (X === 0) return { X: X + W, Y, W: d, H }; // левая стена → вправо
   if (X + W === room.W) return { X: X - d, Y, W: d, H }; // правая стена → влево
+  return null;
+};
+
+export const computeWindowZone = (room: Size, windowRect: Rect, depth: number) => {
+  const { X, Y, W, H } = windowRect;
+  const clamp = (value: number, min: number, max: number) =>
+    Math.min(Math.max(value, min), max);
+
+  const widthWithinRoom = (value: number) => Math.min(value, room.W);
+  const heightWithinRoom = (value: number) => Math.min(value, room.H);
+
+  if (Y === 0) {
+    const width = widthWithinRoom(W);
+    const height = heightWithinRoom(depth);
+    const x = clamp(X, 0, room.W - width);
+    return { X: x, Y: 0, W: width, H: height };
+  }
+
+  if (Y + H === room.H) {
+    const width = widthWithinRoom(W);
+    const height = heightWithinRoom(depth);
+    const x = clamp(X, 0, room.W - width);
+    const y = Math.max(0, room.H - height);
+    return { X: x, Y: y, W: width, H: height };
+  }
+
+  if (X === 0) {
+    const width = widthWithinRoom(depth);
+    const height = heightWithinRoom(H);
+    const y = clamp(Y, 0, room.H - height);
+    return { X: 0, Y: y, W: width, H: height };
+  }
+
+  if (X + W === room.W) {
+    const width = widthWithinRoom(depth);
+    const height = heightWithinRoom(H);
+    const y = clamp(Y, 0, room.H - height);
+    const x = Math.max(0, room.W - width);
+    return { X: x, Y: y, W: width, H: height };
+  }
+
   return null;
 };

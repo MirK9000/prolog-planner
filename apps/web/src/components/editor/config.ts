@@ -3,6 +3,12 @@ export const GRID_MM = 100;
 export const MIN_SIZE_MM = 100;
 export const PADDING_PX = 20;
 
+export const DEFAULT_CLEARANCES_MM = {
+  electrical_shield: 1000,
+  net_cabinet: 1000,
+  window: 1000,
+};
+
 // Человеко-читабельные названия (RU)
 export const TYPE_LABEL: Record<string, string> = {
   door: 'Дверь',

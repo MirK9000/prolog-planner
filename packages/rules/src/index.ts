@@ -9,6 +9,12 @@ const byType = (plan: Plan, t: string) => plan.objects.filter(o => o.type === t)
 
 export const REQUIRES_WALL_ANCHOR = new Set(['door', 'window']);
 
+const DEFAULT_CLEARANCES_MM = {
+  electrical_shield: 1000,
+  net_cabinet: 1000,
+  window: 1000,
+};
+
 export const computeDoorZone = (room: Size, doorRect: Rect): Rect | null => {
   const { X, Y, W, H } = doorRect;
   const depth = 1200;
@@ -21,13 +27,53 @@ export const computeDoorZone = (room: Size, doorRect: Rect): Rect | null => {
   return null;
 };
 
-export const computeEquipmentZone = (room: Size, rect: Rect): Rect | null => {
+export const computeEquipmentZone = (room: Size, rect: Rect, depth: number): Rect | null => {
   const { X, Y, W, H } = rect;
-  const depth = 1000;
   if (Y === 0) return { X, Y: Y + H, W, H: depth };
   if (Y + H === room.H) return { X, Y: Y - depth, W, H: depth };
   if (X === 0) return { X: X + W, Y, W: depth, H };
   if (X + W === room.W) return { X: X - depth, Y, W: depth, H };
+  return null;
+};
+
+export const computeWindowZone = (room: Size, windowRect: Rect, depth: number): Rect | null => {
+  const { X, Y, W, H } = windowRect;
+  const clamp = (value: number, min: number, max: number) =>
+    Math.min(Math.max(value, min), max);
+
+  const widthWithinRoom = (value: number) => Math.min(value, room.W);
+  const heightWithinRoom = (value: number) => Math.min(value, room.H);
+
+  if (Y === 0) {
+    const width = widthWithinRoom(W);
+    const height = heightWithinRoom(depth);
+    const x = clamp(X, 0, room.W - width);
+    return { X: x, Y: 0, W: width, H: height };
+  }
+
+  if (Y + H === room.H) {
+    const width = widthWithinRoom(W);
+    const height = heightWithinRoom(depth);
+    const x = clamp(X, 0, room.W - width);
+    const y = Math.max(0, room.H - height);
+    return { X: x, Y: y, W: width, H: height };
+  }
+
+  if (X === 0) {
+    const width = widthWithinRoom(depth);
+    const height = heightWithinRoom(H);
+    const y = clamp(Y, 0, room.H - height);
+    return { X: 0, Y: y, W: width, H: height };
+  }
+
+  if (X + W === room.W) {
+    const width = widthWithinRoom(depth);
+    const height = heightWithinRoom(H);
+    const y = clamp(Y, 0, room.H - height);
+    const x = Math.max(0, room.W - width);
+    return { X: x, Y: y, W: width, H: height };
+  }
+
   return null;
 };
 
@@ -140,7 +186,16 @@ export const ruleEquipmentAccess: Rule = (plan) => {
   const types = new Set(['electrical_shield', 'net_cabinet']);
   const zones = plan.objects
     .filter(o => types.has(o.type))
-    .map(o => ({ id: o.id, z: computeEquipmentZone(plan.room, o.rect) }))
+    .map(o => ({
+      id: o.id,
+      z: computeEquipmentZone(
+        plan.room,
+        o.rect,
+        o.type === 'electrical_shield'
+          ? DEFAULT_CLEARANCES_MM.electrical_shield
+          : DEFAULT_CLEARANCES_MM.net_cabinet
+      ),
+    }))
     .filter((x): x is { id: string; z: Rect } => !!x.z);
   const issues: Issue[] = [];
   for (const { id, z } of zones) {
@@ -165,6 +220,36 @@ export const ruleEquipmentAccess: Rule = (plan) => {
   return issues;
 };
 
+export const ruleWindowAccess: Rule = (plan) => {
+  const zones = byType(plan, 'window')
+    .map(o => ({
+      id: o.id,
+      z: computeWindowZone(plan.room, o.rect, DEFAULT_CLEARANCES_MM.window),
+    }))
+    .filter((x): x is { id: string; z: Rect } => !!x.z);
+  const issues: Issue[] = [];
+  for (const { id, z } of zones) {
+    for (const o of plan.objects) {
+      if (o.id === id) continue;
+      if (rectIntersects(o.rect, z)) {
+        issues.push({
+          code: 'WINDOW_ACCESS_CONFLICT',
+          severity: 'error' as const,
+          message: `Зона доступа к окну ${id} перекрыта объектом ${o.id}`,
+          objectId: o.id,
+          where: {
+            X: Math.max(o.rect.X, z.X),
+            Y: Math.max(o.rect.Y, z.Y),
+            W: Math.min(o.rect.X + o.rect.W, z.X + z.W) - Math.max(o.rect.X, z.X),
+            H: Math.min(o.rect.Y + o.rect.H, z.Y + z.H) - Math.max(o.rect.Y, z.Y),
+          },
+        });
+      }
+    }
+  }
+  return issues;
+};
+
 
 export const runAllBasicRules: Rule = (plan) => [
   ...ruleOutOfBounds(plan),
@@ -175,4 +260,5 @@ export const runAllBasicRules: Rule = (plan) => [
   ...ruleExtinguisherMinCount(plan),
   ...ruleExtinguisherCoverage(plan),
   ...ruleEquipmentAccess(plan),
+  ...ruleWindowAccess(plan),
 ];

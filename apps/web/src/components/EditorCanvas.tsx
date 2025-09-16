@@ -11,8 +11,14 @@ import {
   PADDING_PX,
   DEFAULT_SIZE_MM,
   REQUIRES_WALL,
+  DEFAULT_CLEARANCES_MM,
 } from './editor/config';
-import { rIntersects, computeDoorZone, computeEquipmentZone } from './editor/doorZone';
+import {
+  rIntersects,
+  computeDoorZone,
+  computeEquipmentZone,
+  computeWindowZone,
+} from './editor/doorZone';
 import { useContainerSize, useEditorHotkeys, View } from './editor/hooks';
 import {
   Grid,
@@ -144,7 +150,7 @@ export const EditorCanvas: React.FC = () => {
   const roomWpx = plan.room.W * mm2px;
   const roomHpx = plan.room.H * mm2px;
 
-  // ======= запретные зоны (двери и оборудование) в мм =======
+  // ======= запретные зоны (двери, оборудование и окна) в мм =======
   const forbiddenZonesMm = React.useMemo(() => {
     const doorZones = plan.objects
       .filter((o) => o.type === 'door')
@@ -152,9 +158,25 @@ export const EditorCanvas: React.FC = () => {
       .filter((x) => !!x.z);
     const equipZones = plan.objects
       .filter((o) => o.type === 'electrical_shield' || o.type === 'net_cabinet')
-      .map((e) => ({ id: e.id, z: computeEquipmentZone(plan.room, e.rect) }))
+      .map((e) => ({
+        id: e.id,
+        z: computeEquipmentZone(
+          plan.room,
+          e.rect,
+          e.type === 'electrical_shield'
+            ? DEFAULT_CLEARANCES_MM.electrical_shield
+            : DEFAULT_CLEARANCES_MM.net_cabinet
+        ),
+      }))
       .filter((x) => !!x.z);
-    return [...doorZones, ...equipZones] as {
+    const windowZones = plan.objects
+      .filter((o) => o.type === 'window')
+      .map((w) => ({
+        id: w.id,
+        z: computeWindowZone(plan.room, w.rect, DEFAULT_CLEARANCES_MM.window),
+      }))
+      .filter((x) => !!x.z);
+    return [...doorZones, ...equipZones, ...windowZones] as {
       id: string;
       z: { X: number; Y: number; W: number; H: number };
     }[];
