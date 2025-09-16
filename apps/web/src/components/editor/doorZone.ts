@@ -1,7 +1,5 @@
 
 import type { Rect, Size } from '@planner/shared';
-
-export const DOOR_CLEAR_FACTOR = 1.5; // квадрат со стороной 1.5*W двери, направлен внутрь
 export const EQUIP_CLEAR_DEPTH = 1000; // свободная зона перед оборудованием (мм)
 
 // пересечение прямоугольников (мм)
@@ -13,48 +11,47 @@ export const computeDoorZone = (
   room: { W: number; H: number },
   door: { X: number; Y: number; W: number; H: number }
 ) => {
-  const { X, Y, W, H } = door;
-  const side = Math.round(DOOR_CLEAR_FACTOR * W);
-  const cx = X + W / 2;
-  const cy = Y + H / 2;
-  const clamp01 = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+  const depth = 1200;
+  const clamp = (value: number, min: number, max: number) =>
+    Math.min(Math.max(value, min), max);
 
-  if (X === 0) {
-    // левая стена → зона вправо
-    return {
-      X: X + W,
-      Y: clamp01(Math.round(cy - side / 2), 0, room.H - side),
-      W: Math.min(side, room.W - (X + W)),
-      H: Math.min(side, room.H),
-    };
-  }
-  if (X + W === room.W) {
-    // правая стена → зона влево
-    return {
-      X: Math.max(0, room.W - W - side),
-      Y: clamp01(Math.round(cy - side / 2), 0, room.H - side),
-      W: Math.min(side, room.W - W),
-      H: Math.min(side, room.H),
-    };
-  }
-  if (Y === 0) {
+  const widthWithinRoom = (value: number) => Math.min(value, room.W);
+  const heightWithinRoom = (value: number) => Math.min(value, room.H);
+
+  if (door.Y === 0) {
     // верхняя стена → зона вниз
-    return {
-      X: clamp01(Math.round(cx - side / 2), 0, room.W - side),
-      Y: Y + H,
-      W: Math.min(side, room.W),
-      H: Math.min(side, room.H - (Y + H)),
-    };
+    const width = widthWithinRoom(door.W);
+    const height = heightWithinRoom(depth);
+    const x = clamp(door.X, 0, room.W - width);
+    return { X: x, Y: 0, W: width, H: height };
   }
-  if (Y + H === room.H) {
+
+  if (door.Y + door.H === room.H) {
     // нижняя стена → зона вверх
-    return {
-      X: clamp01(Math.round(cx - side / 2), 0, room.W - side),
-      Y: Math.max(0, room.H - H - side),
-      W: Math.min(side, room.W),
-      H: Math.min(side, room.H - H),
-    };
+    const width = widthWithinRoom(door.W);
+    const height = heightWithinRoom(depth);
+    const x = clamp(door.X, 0, room.W - width);
+    const y = Math.max(0, room.H - height);
+    return { X: x, Y: y, W: width, H: height };
   }
+
+  if (door.X === 0) {
+    // левая стена → зона вправо
+    const width = widthWithinRoom(depth);
+    const height = heightWithinRoom(door.H);
+    const y = clamp(door.Y, 0, room.H - height);
+    return { X: 0, Y: y, W: width, H: height };
+  }
+
+  if (door.X + door.W === room.W) {
+    // правая стена → зона влево
+    const width = widthWithinRoom(depth);
+    const height = heightWithinRoom(door.H);
+    const y = clamp(door.Y, 0, room.H - height);
+    const x = Math.max(0, room.W - width);
+    return { X: x, Y: y, W: width, H: height };
+  }
+
   return null;
 };
 
