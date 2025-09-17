@@ -51,11 +51,16 @@ export default function Home() {
         const desks = Array.isArray(data.desks) ? data.desks : [];
         const objects = plan.objects.filter(o => o.type !== 'workplace');
         for (const d of desks) {
+          const orientation =
+            typeof d.orientation === 'number'
+              ? (((d.orientation % 4) + 4) % 4) as 0 | 1 | 2 | 3
+              : undefined;
           objects.push({
             id: d.id ?? usePlanStore.getState().nextIdForType('workplace'),
             type: 'workplace',
             rect: { X: d.rect.x, Y: d.rect.y, W: d.rect.w, H: d.rect.h },
             properties: [],
+            orientation,
           });
         }
         let task = plan.task;

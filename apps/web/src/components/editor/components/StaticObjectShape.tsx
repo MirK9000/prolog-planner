@@ -51,9 +51,21 @@ export const StaticObjectShape: React.FC<Props> = ({
     fill: 'rgba(99,102,241,0.08)',
     stroke: '#6b7280',
   };
-  const stroke = selected ? '#6366f1' : style.stroke;
+  const hasOrientation = object.type === 'workplace' && object.orientation !== undefined;
+  const orientation = hasOrientation ? object.orientation! : undefined;
   const strokeWidth = selected ? 2 : 1;
-  const fill = style.fill;
+  const containerStroke = hasOrientation
+    ? selected
+      ? '#6366f1'
+      : '#9ca3af'
+    : selected
+    ? '#6366f1'
+    : style.stroke;
+  const containerFill = hasOrientation ? 'transparent' : style.fill;
+  const containerDash = hasOrientation ? [6, 4] : undefined;
+  const tableStroke = selected ? '#6366f1' : style.stroke;
+  const tableStrokeWidth = selected ? 2 : 1;
+  const tableFill = style.fill;
 
   const mainLabel = selected
     ? `${TYPE_LABEL[object.type] ?? object.type} · ${object.id}`
@@ -69,6 +81,39 @@ export const StaticObjectShape: React.FC<Props> = ({
     selected ? 12 : Math.max(9, Math.min(12, 9 + (zoom - 1) * 3));
   const last = React.useRef({ x, y });
 
+  let tableRectPx: { x: number; y: number; width: number; height: number } | null = null;
+  if (hasOrientation && orientation !== undefined) {
+    const WALKWAY_MM = 600;
+    const baseRect = object.rect;
+    let tableXmm = baseRect.X;
+    let tableYmm = baseRect.Y;
+    let tableWmm = baseRect.W;
+    let tableHmm = baseRect.H;
+
+    if (orientation === 0) {
+      const walkway = Math.min(WALKWAY_MM, tableHmm);
+      tableYmm = baseRect.Y + walkway;
+      tableHmm = Math.max(0, tableHmm - walkway);
+    } else if (orientation === 1) {
+      const walkway = Math.min(WALKWAY_MM, tableWmm);
+      tableXmm = baseRect.X + walkway;
+      tableWmm = Math.max(0, tableWmm - walkway);
+    } else if (orientation === 2) {
+      const walkway = Math.min(WALKWAY_MM, tableHmm);
+      tableHmm = Math.max(0, tableHmm - walkway);
+    } else if (orientation === 3) {
+      const walkway = Math.min(WALKWAY_MM, tableWmm);
+      tableWmm = Math.max(0, tableWmm - walkway);
+    }
+
+    tableRectPx = {
+      x: baseX + tableXmm * mm2px,
+      y: baseY + tableYmm * mm2px,
+      width: tableWmm * mm2px,
+      height: tableHmm * mm2px,
+    };
+  }
+
   return (
     <>
       <Rect
@@ -77,9 +122,10 @@ export const StaticObjectShape: React.FC<Props> = ({
         y={y}
         width={w}
         height={h}
-        fill={fill}
-        stroke={stroke}
+        fill={containerFill}
+        stroke={containerStroke}
         strokeWidth={strokeWidth}
+        dash={containerDash}
         draggable
         dragBoundFunc={(pos) => {
           let nx = clamp(pos.x, baseX, baseX + roomWpx - w);
@@ -101,6 +147,18 @@ export const StaticObjectShape: React.FC<Props> = ({
         onTransform={(e) => onTransform(e.target)}
         onTransformEnd={onTransformEnd}
       />
+      {tableRectPx && (
+        <Rect
+          x={tableRectPx.x}
+          y={tableRectPx.y}
+          width={tableRectPx.width}
+          height={tableRectPx.height}
+          fill={tableFill}
+          stroke={tableStroke}
+          strokeWidth={tableStrokeWidth}
+          listening={false}
+        />
+      )}
       {shouldShowLabel(w, h) && (
         <Text
           text={mainLabel}

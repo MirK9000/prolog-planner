@@ -21,6 +21,7 @@ export interface StaticObject {
   rect: Rect;
   properties: Property[];
   requiresWallAnchor?: boolean;
+  orientation?: 0 | 1 | 2 | 3;
 }
 
 export interface TaskSpec { count: number; size: Size }
