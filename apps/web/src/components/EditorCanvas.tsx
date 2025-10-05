@@ -14,11 +14,11 @@ import {
   DEFAULT_CLEARANCES_MM,
 } from './editor/config';
 import {
-  rIntersects,
+  rectIntersects as rIntersects,
   computeDoorZone,
   computeEquipmentZone,
   computeWindowZone,
-} from './editor/doorZone';
+} from '@planner/geometry';
 import { useContainerSize, useEditorHotkeys, View } from './editor/hooks';
 import {
   Grid,

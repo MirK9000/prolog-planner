@@ -1,6 +1,16 @@
 
-import type { Plan, Issue, Rect, Size, StaticObject } from '@planner/shared';
-import { rectIntersects, rectInside, isOnWall, distanceRectToRect } from '@planner/geometry';
+import type { Plan, Issue, Rect } from '@planner/shared';
+import {
+  rectIntersects,
+  rectInside,
+  isOnWall,
+  distanceRectToRect,
+  computeDoorZone,
+  computeEquipmentZone,
+  computeWindowZone,
+} from '@planner/geometry';
+
+export { computeDoorZone, computeEquipmentZone, computeWindowZone } from '@planner/geometry';
 
 export type Rule = (plan: Plan) => Issue[];
 
@@ -13,68 +23,6 @@ const DEFAULT_CLEARANCES_MM = {
   electrical_shield: 1000,
   net_cabinet: 1000,
   window: 1000,
-};
-
-export const computeDoorZone = (room: Size, doorRect: Rect): Rect | null => {
-  const { X, Y, W, H } = doorRect;
-  const depth = 1200;
-
-  if (Y === 0) return { X, Y, W, H: depth };
-  if (Y + H === room.H) return { X, Y: Y - depth, W, H: depth };
-  if (X === 0) return { X, Y, W: depth, H };
-  if (X + W === room.W) return { X: X - depth, Y, W: depth, H };
-
-  return null;
-};
-
-export const computeEquipmentZone = (room: Size, rect: Rect, depth: number): Rect | null => {
-  const { X, Y, W, H } = rect;
-  if (Y === 0) return { X, Y: Y + H, W, H: depth };
-  if (Y + H === room.H) return { X, Y: Y - depth, W, H: depth };
-  if (X === 0) return { X: X + W, Y, W: depth, H };
-  if (X + W === room.W) return { X: X - depth, Y, W: depth, H };
-  return null;
-};
-
-export const computeWindowZone = (room: Size, windowRect: Rect, depth: number): Rect | null => {
-  const { X, Y, W, H } = windowRect;
-  const clamp = (value: number, min: number, max: number) =>
-    Math.min(Math.max(value, min), max);
-
-  const widthWithinRoom = (value: number) => Math.min(value, room.W);
-  const heightWithinRoom = (value: number) => Math.min(value, room.H);
-
-  if (Y === 0) {
-    const width = widthWithinRoom(W);
-    const height = heightWithinRoom(depth);
-    const x = clamp(X, 0, room.W - width);
-    return { X: x, Y: 0, W: width, H: height };
-  }
-
-  if (Y + H === room.H) {
-    const width = widthWithinRoom(W);
-    const height = heightWithinRoom(depth);
-    const x = clamp(X, 0, room.W - width);
-    const y = Math.max(0, room.H - height);
-    return { X: x, Y: y, W: width, H: height };
-  }
-
-  if (X === 0) {
-    const width = widthWithinRoom(depth);
-    const height = heightWithinRoom(H);
-    const y = clamp(Y, 0, room.H - height);
-    return { X: 0, Y: y, W: width, H: height };
-  }
-
-  if (X + W === room.W) {
-    const width = widthWithinRoom(depth);
-    const height = heightWithinRoom(H);
-    const y = clamp(Y, 0, room.H - height);
-    const x = Math.max(0, room.W - width);
-    return { X: x, Y: y, W: width, H: height };
-  }
-
-  return null;
 };
 
 
