@@ -1,4 +1,4 @@
-import { computeDoorZone, computeEquipmentZone, computeWindowZone } from '../zones';
+import { computeDoorZone, computeEquipmentZone, computeWindowZone } from '..';
 import type { Rect, Size } from '@planner/shared';
 
 describe('zones', () => {

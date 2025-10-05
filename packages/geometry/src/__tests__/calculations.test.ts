@@ -1,4 +1,13 @@
-import { clamp, distanceRectToRect, isOnWall, mmToPx, pxToMm, rectInside, rectIntersects, snap } from '../calculations';
+import {
+  clamp,
+  distanceRectToRect,
+  isOnWall,
+  mmToPx,
+  pxToMm,
+  rectInside,
+  rectIntersects,
+  snap,
+} from '..';
 
 const rect = (X: number, Y: number, W: number, H: number) => ({ X, Y, W, H });
 

@@ -6,6 +6,7 @@
     "packages/*"
   ],
   "scripts": {
+    "predev": "npm run build:packages",
     "build:packages": "npm -w @planner/shared run build && npm -w @planner/geometry run build && npm -w @planner/rules run build && npm -w @planner/serializer run build",
     "dev": "npm-run-all -p dev:web dev:api",
     "dev:web": "npm run dev -w @planner/web",
