@@ -5,12 +5,18 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@planner/shared": "0.4.0"
   },
   "devDependencies": {
+    "@types/jest": "latest",
+    "jest": "latest",
+    "ts-jest": "latest",
     "typescript": "latest"
   }
 }

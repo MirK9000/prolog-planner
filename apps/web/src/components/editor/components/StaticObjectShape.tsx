@@ -4,7 +4,7 @@ import { clamp } from '@planner/geometry';
 import type { StaticObject } from '@planner/shared';
 import { TYPE_COLOR, TYPE_LABEL, TYPE_SHORT } from '../config';
 
-import { rIntersects } from '../doorZone';
+import { rectIntersects as rIntersects } from '@planner/geometry';
 
 
 interface Props {
