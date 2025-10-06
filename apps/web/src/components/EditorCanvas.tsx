@@ -19,7 +19,7 @@ import {
   computeEquipmentZone,
   computeWindowZone,
 } from '@planner/geometry';
-import { useContainerSize, useEditorHotkeys, View } from './editor/hooks';
+import { useCanvasView, useContainerSize, useEditorHotkeys } from './editor/hooks';
 import {
   Grid,
   Room,
@@ -49,19 +49,15 @@ export const EditorCanvas: React.FC = () => {
     copied,
   } = usePlanStore();
 
-  // fit без учёта zoom
-  const roomPxBase = { W: plan.room.W * PX_PER_MM, H: plan.room.H * PX_PER_MM };
-  const fit = React.useMemo(() => {
-    const s =
-      Math.min(
-        size.w / (roomPxBase.W + PADDING_PX * 2),
-        size.h / (roomPxBase.H + PADDING_PX * 2)
-      ) || 1;
-    return Math.max(1e-6, Math.floor(s * 1000) / 1000);
-  }, [size.w, size.h, roomPxBase.W, roomPxBase.H]);
-
-  const [view, setView] = React.useState<View>({ zoom: 1, panX: 0, panY: 0 });
-  const mm2px = PX_PER_MM * fit * view.zoom;
+  const { view, mm2px, zoomAtCenter, resetView, setPan, handleWheel } = useCanvasView({
+    roomSize: plan.room,
+    containerSize: size,
+    pxPerMm: PX_PER_MM,
+    padding: PADDING_PX,
+    stageRef,
+    minZoom: 0.2,
+    maxZoom: 10,
+  });
 
   // панорамирование
   const [isPanning, setIsPanning] = React.useState(false);
@@ -88,41 +84,7 @@ export const EditorCanvas: React.FC = () => {
   } | null>(null);
 
   // ======= зум =======
-  const zoomAt = React.useCallback(
-    (sx: number, sy: number, factor: number) => {
-      setView((prev) => {
-        const old = prev.zoom;
-        const next = clamp(old * factor, 0.2, 10);
-        if (next === old) return prev;
-        const baseX = PADDING_PX,
-          baseY = PADDING_PX;
-        const oldMm2px = PX_PER_MM * fit * old;
-        const newMm2px = PX_PER_MM * fit * next;
-        const newPanX =
-          sx -
-          baseX -
-          ((sx - baseX - prev.panX) / oldMm2px) * newMm2px;
-        const newPanY =
-          sy -
-          baseY -
-          ((sy - baseY - prev.panY) / oldMm2px) * newMm2px;
-        return { zoom: next, panX: newPanX, panY: newPanY };
-      });
-    },
-    [fit]
-  );
-
-  const zoomAtCenter = React.useCallback(
-    (factor: number) => {
-      const stage = stageRef.current as any;
-      const sx = (stage?.width() ?? size.w) / 2;
-      const sy = (stage?.height() ?? size.h) / 2;
-      zoomAt(sx, sy, factor);
-    },
-    [size.w, size.h, zoomAt]
-  );
-
-  const spacePressed = useEditorHotkeys(zoomAtCenter, setView, setGhost, updateGhostAt);
+  const spacePressed = useEditorHotkeys(zoomAtCenter, resetView, setGhost, updateGhostAt);
 
   // Завершать пан при mouseup/blur
   React.useEffect(() => {
@@ -134,15 +96,6 @@ export const EditorCanvas: React.FC = () => {
       window.removeEventListener('blur', up);
     };
   }, []);
-
-  const handleWheel = (e: any) => {
-    e.evt.preventDefault();
-    const stage = stageRef.current as any;
-    const p = stage.getPointerPosition();
-    if (!p) return;
-    const dir = e.evt.deltaY > 0 ? 1 / 1.1 : 1.1;
-    zoomAt(p.x, p.y, dir);
-  };
 
   // Базовые вычисления
   const baseX = PADDING_PX + view.panX;
@@ -240,7 +193,7 @@ export const EditorCanvas: React.FC = () => {
     }
     const dx = e.evt.clientX - ps.x,
       dy = e.evt.clientY - ps.y;
-    setView((v) => ({ ...v, panX: ps.panX + dx, panY: ps.panY + dy }));
+    setPan(ps.panX + dx, ps.panY + dy);
   };
   const handleClick = () => {
     if (!placingType || !ghost) return;
