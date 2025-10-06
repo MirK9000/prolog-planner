@@ -9,6 +9,7 @@
 
 :- use_module(rects).
 :- use_module(tiles).
+:- use_module(connectivity).
 :- use_module(library(ordsets)).
 :- use_module(library(assoc)).
 :- use_module(library(yall)).
@@ -75,6 +76,12 @@ orient_tiles(Rects, Meta, Doors, Oris, Proof) :-
               ( get_assoc(I, FinalA.assoc, O) -> Ori = O ; Ori = 0 )
             ),
             Oris),
+
+    ( connectivity:validate_pass_connectivity(Rects, Oris, Meta, Doors, PassDiag) -> true
+    ; format(user_error, '[orient] PASS connectivity failed: ~w~n', [PassDiag]),
+      fail
+    ),
+
     Proof = _{ perimeter:AssignedP,
               door_edges:DoorEdges,
               conn_seeds:ConnSeeds1,
