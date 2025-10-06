@@ -2,12 +2,26 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
     "moduleResolution": "Node",
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "rootDirs": [
+      "./src",
+      "../../packages/shared/src",
+      "../../packages/serializer/src",
+      "../../packages/geometry/src",
+      "../../packages/rules/src"
+    ]
   },
   "include": [
     "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test",
+    "**/*.spec.ts",
+    "**/__tests__/**"
   ]
 }
+
