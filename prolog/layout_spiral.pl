@@ -11,6 +11,7 @@
 :- use_module(rects).
 :- use_module(zones).
 :- use_module(tiles).
+:- use_module(connectivity).
 :- use_module(library(lists)).
 :- use_module(library(ordsets)).
 :- use_module(library(apply)).
@@ -77,9 +78,15 @@ attempt_one_offset(N, Wr,Hr, S, WallClear, Corner, Mode, Budget,
 
     % Filter to free cells
     include({BlockedSet}/[XY]>>(\+ ord_memberchk(XY, BlockedSet)),
-        CellsCornered, FreeCells),
-
+        CellsCornered, FreeCells0),
+    connectivity:filter_isolated_cells(BlockedSet, Cx, Cy, FreeCells0, FreeCells),
+    length(FreeCells0, FreeCount0),
     length(FreeCells, FreeCount),
+    ( FreeCount0 =\= FreeCount ->
+        Filtered is FreeCount0 - FreeCount,
+        emit_progress(spiral_info(filtered_isolated(Filtered)))
+    ; true ),
+
     emit_progress(spiral_start(_{n:N, room:_{w:Wr,h:Hr}, grid:S,
                                  safe:_{wall:WallClear, x0:X0,y0:Y0, cx:Cx,cy:Cy},
                                  offset:_{x:OffX,y:OffY},
@@ -114,6 +121,22 @@ attempt_one_offset(N, Wr,Hr, S, WallClear, Corner, Mode, Budget,
     length(RectsMM, K), K =:= N,
     length(Oris, N), maplist(=(0), Oris),
 
+    Meta = _{ grid_mm:S,
+              cells:_{x:Cx,y:Cy},
+              room:_{w:Wr,h:Hr},
+              safe:_{wall:WallClear, x0:X0,y0:Y0},
+              offset:_{x:OffX,y:OffY},
+              mode:Mode, corner:Corner,
+              tile:_{desk_w:Wmm, desk_h:Hmm, pass_mm:Aisle} },
+
+    findall(door(Id,side(Side),offset(Off),width(Wd)),
+            zones:door(Id,side(Side),offset(Off),width(Wd)),
+            Doors),
+    ( connectivity:validate_grid_connectivity(RectsMM, Meta, Doors, GridDiag) -> true
+    ; emit_progress(spiral_finish(connectivity_failed, GridDiag)),
+      fail
+    ),
+
     % --- SAFETY CHECK: ни один тайл не пересекает collect_zones/1 ---
     zones:collect_zones(Zs),
     (   forall(member(R, RectsMM),
@@ -127,12 +150,6 @@ attempt_one_offset(N, Wr,Hr, S, WallClear, Corner, Mode, Budget,
         fail
     ),
 
-    Meta = _{ grid_mm:S,
-              cells:_{x:Cx,y:Cy},
-              room:_{w:Wr,h:Hr},
-              safe:_{wall:WallClear, x0:X0,y0:Y0},
-              offset:_{x:OffX,y:OffY},
-              mode:Mode, corner:Corner }.
 
 /* ------------------------------------------------------------------
    Options helpers
