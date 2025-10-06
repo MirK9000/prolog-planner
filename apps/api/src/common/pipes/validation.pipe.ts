@@ -18,10 +18,9 @@ export class ValidationPipe implements PipeTransform {
     }
 
     const object = plainToInstance(metatype as new () => unknown, value);
-    const errors = await validate(object as object, {
+    const errors = await validate(object as Record<string, unknown>, {
       whitelist: true,
       forbidNonWhitelisted: true,
-      transform: true,
     });
 
     if (errors.length > 0) {
