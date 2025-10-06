@@ -77,7 +77,8 @@ orient_tiles(Rects, Meta, Doors, Oris, Proof) :-
             ),
             Oris),
 
-    ( connectivity:validate_pass_connectivity(Rects, Oris, Meta, Doors, PassDiag) -> true
+    connectivity:validate_pass_connectivity(Rects, Oris, Meta, Doors, PassDiag),
+    ( PassDiag = success -> true
     ; format(user_error, '[orient] PASS connectivity failed: ~w~n', [PassDiag]),
       fail
     ),

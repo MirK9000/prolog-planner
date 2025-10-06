@@ -121,6 +121,9 @@ attempt_one_offset(N, Wr,Hr, S, WallClear, Corner, Mode, Budget,
     length(RectsMM, K), K =:= N,
     length(Oris, N), maplist(=(0), Oris),
 
+    % Get aisle width for Meta (required by connectivity validation)
+    zones:get_policy(min_aisle_width_mm, Aisle),
+
     Meta = _{ grid_mm:S,
               cells:_{x:Cx,y:Cy},
               room:_{w:Wr,h:Hr},
