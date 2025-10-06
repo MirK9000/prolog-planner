@@ -5,21 +5,34 @@
   "scripts": {
     "start": "nest start",
     "start:dev": "nest start --watch",
-    "build": "nest build"
+    "build": "nest build",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
     "@nestjs/common": "latest",
+    "@nestjs/config": "latest",
     "@nestjs/core": "latest",
     "@nestjs/platform-express": "latest",
-    "reflect-metadata": "latest",
-    "rxjs": "latest",
+    "@planner/serializer": "0.4.0",
     "@planner/shared": "0.4.0",
-    "@planner/serializer": "0.4.0"
+    "class-transformer": "latest",
+    "class-validator": "latest",
+    "reflect-metadata": "latest",
+    "rxjs": "latest"
   },
   "devDependencies": {
     "@nestjs/cli": "latest",
-    "typescript": "latest",
+    "@nestjs/testing": "latest",
+    "@types/jest": "latest",
+    "@types/supertest": "latest",
+    "jest": "latest",
+    "supertest": "latest",
+    "ts-jest": "latest",
     "ts-node": "latest",
-    "tsconfig-paths": "latest"
+    "tsconfig-paths": "latest",
+    "typescript": "latest"
   }
 }
