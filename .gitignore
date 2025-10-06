@@ -19,6 +19,7 @@ Thumbs.db
 .env.*.local
 .env.local
 !.env.example
+!apps/api/.env
 
 # Next.js
 .next/

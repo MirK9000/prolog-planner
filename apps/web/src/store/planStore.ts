@@ -21,10 +21,14 @@ type State = {
   plan: Plan;
   selectedId?: string;
   issues: Issue[];
+  solving: boolean;
+  solverError: string | null;
 
   setPlan: (p: Plan) => void;
   setSelected: (id?: string) => void;
   setIssues: (i: Issue[]) => void;
+  setSolving: (solving: boolean) => void;
+  setSolverError: (error: string | null) => void;
 
   updateObject: (id: string, patch: Partial<StaticObject['rect']>) => void;
   updateRoom: (patch: Partial<Size>) => void;
@@ -79,11 +83,15 @@ export const usePlanStore = create<State>((set, get) => ({
 
   selectedId: undefined,
   issues: [],
+  solving: false,
+  solverError: null,
   _idCounters: {},
 
   setPlan: (p) => set({ plan: p, _idCounters: initCounters(p.objects) }),
   setSelected: (id) => set({ selectedId: id }),
   setIssues: (i) => set({ issues: i }),
+  setSolving: (solving) => set({ solving }),
+  setSolverError: (error) => set({ solverError: error }),
 
   updateObject: (id, patch) => set(s => ({
     plan: { ...s.plan, objects: s.plan.objects.map(o => o.id === id ? { ...o, rect: { ...o.rect, ...patch } } : o) }
