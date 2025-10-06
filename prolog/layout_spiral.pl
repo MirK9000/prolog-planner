@@ -77,7 +77,7 @@ attempt_one_offset(N, Wr,Hr, S, WallClear, Corner, Mode, Budget,
     map_corner(Cx,Cy, Corner, CellsBase, CellsCornered),
 
     % Filter to free cells
-    include({BlockedSet}/[XY]>>(\+ ord_memberchk(XY, BlockedSet)),
+    include({BlockedSet}/[XY]>>is_free_cell(BlockedSet, XY),
         CellsCornered, FreeCells0),
     connectivity:filter_isolated_cells(BlockedSet, Cx, Cy, FreeCells0, FreeCells),
     length(FreeCells0, FreeCount0),
@@ -308,6 +308,9 @@ rects_to_cells_grid(S, X0,Y0, Cx,Cy, RectsMM, Blocked) :-
       ),
       Raw),
     sort(Raw, Blocked).
+
+is_free_cell(BlockedSet, XY) :-
+    \+ ord_memberchk(XY, BlockedSet).
 
 /* ------------------------------------------------------------------
    Spiral order over Cx×Cy grid. Base corner = top-left (tl).
