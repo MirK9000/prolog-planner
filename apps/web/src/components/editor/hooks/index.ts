@@ -1,8 +1,8 @@
 'use client';
 import React from 'react';
-import { usePlanStore } from '../../store/planStore';
-
-export type View = { zoom: number; panX: number; panY: number };
+import { usePlanStore } from '../../../store/planStore';
+export type { CanvasView as View } from './useCanvasView';
+export { useCanvasView } from './useCanvasView';
 
 export const useContainerSize = (ref: React.RefObject<HTMLDivElement | null>) => {
   const [size, setSize] = React.useState({ w: 800, h: 600 });
@@ -23,7 +23,7 @@ export const useContainerSize = (ref: React.RefObject<HTMLDivElement | null>) =>
 
 export const useEditorHotkeys = (
   zoomAtCenter: (factor: number) => void,
-  setView: React.Dispatch<React.SetStateAction<View>>,
+  resetView: () => void,
   setGhost: (g: any) => void,
   updateGhostAt: () => void
 ) => {
@@ -45,7 +45,7 @@ export const useEditorHotkeys = (
       }
       if (e.key === '0' || e.key.toLowerCase() === 'f') {
         e.preventDefault();
-        setView({ zoom: 1, panX: 0, panY: 0 });
+        resetView();
       }
       if (e.key === 'Escape') {
         setPlacingType(undefined);
@@ -77,7 +77,17 @@ export const useEditorHotkeys = (
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [zoomAtCenter, setView, setPlacingType, deleteSelected, placingType, setGhost, updateGhostAt, copySelected, copied]);
+  }, [
+    zoomAtCenter,
+    resetView,
+    setPlacingType,
+    deleteSelected,
+    placingType,
+    setGhost,
+    updateGhostAt,
+    copySelected,
+    copied,
+  ]);
 
   return spacePressed;
 };
