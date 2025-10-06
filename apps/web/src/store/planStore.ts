@@ -1,6 +1,6 @@
 'use client';
 import { create } from 'zustand';
-import type { Plan, StaticObject, Issue, Size, Property } from '@planner/shared';
+import type { Plan, StaticObject, Issue, Size, Property, TaskSpec } from '@planner/shared';
 
 // аббревиатуры для id
 const TYPE_ABBR: Record<string, string> = {
@@ -33,6 +33,8 @@ type State = {
   updateObject: (id: string, patch: Partial<StaticObject['rect']>) => void;
   updateRoom: (patch: Partial<Size>) => void;
   setProperty: (id: string, prop: Property) => void;
+  updateTask: (task: TaskSpec) => void;
+  clearWorkplaces: () => void;
 
   // создание / удаление
   addObject: (o: StaticObject) => void;
@@ -78,7 +80,7 @@ export const usePlanStore = create<State>((set, get) => ({
       { id: 'win-2', type: 'window', rect: { X: 4100, Y: 0, W: 2000, H: 200 }, properties: [], requiresWallAnchor: true },
       { id: 'win-3', type: 'window', rect: { X: 6600, Y: 0, W: 2000, H: 200 }, properties: [], requiresWallAnchor: true },
     ],
-    task: { count: 12, size: { W: 1200, H: 800 } }
+    task: { count: 12, size: { W: 1400, H: 800 } }
   },
 
   selectedId: undefined,
@@ -98,6 +100,8 @@ export const usePlanStore = create<State>((set, get) => ({
   })),
 
   updateRoom: (patch) => set(s => ({ plan: { ...s.plan, room: { ...s.plan.room, ...patch } } })),
+
+  updateTask: (task) => set(s => ({ plan: { ...s.plan, task } })),
 
   setProperty: (id, prop) => set(s => ({
     plan: {
@@ -159,6 +163,16 @@ export const usePlanStore = create<State>((set, get) => ({
     const id = get().selectedId;
     if (id) get().deleteObject(id);
   },
+  clearWorkplaces: () => set(s => {
+    const remaining = s.plan.objects.filter(o => o.type !== 'workplace');
+    const selectedPreserved = s.selectedId && remaining.some(o => o.id === s.selectedId)
+      ? s.selectedId
+      : undefined;
+    return {
+      plan: { ...s.plan, objects: remaining },
+      selectedId: selectedPreserved,
+    };
+  }),
 }));
 
 // инициализация счётчиков при первом запуске
