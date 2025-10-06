@@ -8,14 +8,26 @@ import { ObjectPalette } from '../src/components/ObjectPalette';
 import { usePlanStore } from '../src/store/planStore';
 import { runAllBasicRules } from '@planner/rules';
 import { toProlog } from '@planner/serializer';
+import type { SolutionDto } from '../src/types/solver';
 
 const EditorCanvas = dynamic(
   () => import('../src/components/EditorCanvas').then(m => m.EditorCanvas),
   { ssr: false }
 );
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333';
+
 export default function Home() {
-  const { plan, setPlan, setIssues, issues } = usePlanStore();
+  const {
+    plan,
+    setPlan,
+    setIssues,
+    issues,
+    solving,
+    solverError,
+    setSolving,
+    setSolverError,
+  } = usePlanStore();
   const [tab, setTab] = React.useState<'room' | 'objects' | 'issues'>('objects'); // ⬅️ добавили 'room'
 
   const checkPlan = () => setIssues(runAllBasicRules(plan));
@@ -77,6 +89,101 @@ export default function Home() {
     input.click();
   };
 
+  const solvePlan = async () => {
+    if (!plan.task) {
+      alert('Сначала укажите количество и размер рабочих мест в разделе «Помещение».');
+      return;
+    }
+
+    if (plan.objects.some(o => o.type === 'workplace')) {
+      const replace = window.confirm('Заменить существующие рабочие места на решение решателя?');
+      if (!replace) {
+        return;
+      }
+    }
+
+    setSolving(true);
+    setSolverError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL.replace(/\/$/, '')}/solver/solve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(plan),
+      });
+
+      let result: SolutionDto | null = null;
+      try {
+        result = await response.json();
+      } catch (error) {
+        console.error('Failed to parse solver response', error);
+      }
+
+      if (!result) {
+        setSolverError('Не удалось прочитать ответ решателя. Попробуйте еще раз.');
+        return;
+      }
+
+      if (!response.ok && !result.success) {
+        setSolverError(result.error?.message ?? 'Решатель вернул ошибку.');
+        return;
+      }
+
+      if (!result.success) {
+        const details = result.error?.details && typeof result.error.details === 'object'
+          ? ` (подробнее: ${JSON.stringify(result.error.details)})`
+          : '';
+        setSolverError(`${result.error?.message ?? 'Решатель вернул ошибку.'}${details}`);
+        return;
+      }
+
+      const desks = result.solution?.desks ?? [];
+      const preserved = plan.objects.filter(o => o.type !== 'workplace');
+      const workspace = usePlanStore.getState();
+      const nextObjects = desks.map((desk) => {
+        const normalizedOrientation = typeof desk.orientation === 'number'
+          ? (((Math.round(desk.orientation) % 4) + 4) % 4) as 0 | 1 | 2 | 3
+          : undefined;
+        const identifier = desk.id && desk.id.length > 0
+          ? desk.id
+          : workspace.nextIdForType('workplace');
+        return {
+          id: identifier,
+          type: 'workplace' as const,
+          rect: {
+            X: desk.rect.x,
+            Y: desk.rect.y,
+            W: desk.rect.w,
+            H: desk.rect.h,
+          },
+          properties: [],
+          orientation: normalizedOrientation,
+        };
+      });
+
+      const updatedPlan = {
+        ...plan,
+        objects: [...preserved, ...nextObjects],
+        task: plan.task
+          ? { ...plan.task, count: result.metadata?.placedDesks ?? plan.task.count }
+          : plan.task,
+      };
+
+      setPlan(updatedPlan);
+      setTab('objects');
+
+      const placed = result.metadata?.placedDesks ?? desks.length;
+      const timeMs = result.metadata?.executionTime ?? 0;
+      const seconds = (timeMs / 1000).toFixed(1);
+      alert(`Успешно размещено ${placed} рабочих мест за ${seconds} сек.`);
+    } catch (error) {
+      console.error('Solver request failed', error);
+      setSolverError('Не удалось подключиться к решателю. Проверьте, что сервер запущен.');
+    } finally {
+      setSolving(false);
+    }
+  };
+
   return (
     <main style={{
       display: 'grid', gridTemplateColumns: '1fr 380px', gap: 16,
@@ -84,11 +191,46 @@ export default function Home() {
     }}>
       <section style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0, minHeight: 0 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: '0 0 auto' }}>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <button onClick={checkPlan}>Проверить план</button>
             <button onClick={exportPlan}>Экспорт в Prolog</button>
             <button onClick={importSolution}>Импорт решения</button>
+            <button
+              onClick={solvePlan}
+              disabled={solving || !plan.task}
+              className="solve-button"
+              title="Автоматически разместить рабочие места"
+            >
+              {solving ? (
+                <>
+                  <span className="spinner" aria-hidden="true" />
+                  <span>Решение в процессе...</span>
+                </>
+              ) : (
+                <>
+                  <span aria-hidden="true">🪄</span>
+                  <span>Решить планировку</span>
+                </>
+              )}
+            </button>
           </div>
+          {!plan.task && (
+            <div style={{ fontSize: 12, color: '#6b7280' }}>
+              Укажите количество и размер рабочих мест в разделе «Помещение», чтобы запустить решатель.
+            </div>
+          )}
+          {solverError && (
+            <div className="solver-error-panel" role="alert">
+              <span aria-hidden="true">⚠️</span>
+              <div style={{ flex: 1 }}>
+                <strong>Ошибка решения:</strong>
+                <p style={{ margin: '4px 0 0 0' }}>{solverError}</p>
+              </div>
+              <button onClick={() => setSolverError(null)} aria-label="Закрыть уведомление">
+                ×
+              </button>
+            </div>
+          )}
           <ObjectPalette /> {/* ⬅️ палитра типов */}
         </div>
         <div style={{ flex: 1, minHeight: 0 }}>

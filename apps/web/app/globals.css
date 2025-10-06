@@ -14,3 +14,61 @@ html, body {
   /* отключаем рывки при скролле тачпадом/колесом */
   overscroll-behavior: none;
 }
+
+.solve-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  background: #4f46e5;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.solve-button:hover {
+  background: #4338ca;
+}
+
+.solve-button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.solve-button .spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.solver-error-panel {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 12px 14px;
+  border-radius: 10px;
+}
+
+.solver-error-panel button {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
