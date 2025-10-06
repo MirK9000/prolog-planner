@@ -6,6 +6,25 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@planner/shared": [
+        "packages/shared/dist",
+        "packages/shared/src"
+      ],
+      "@planner/serializer": [
+        "packages/serializer/dist",
+        "packages/serializer/src"
+      ],
+      "@planner/geometry": [
+        "packages/geometry/dist",
+        "packages/geometry/src"
+      ],
+      "@planner/rules": [
+        "packages/rules/dist",
+        "packages/rules/src"
+      ]
+    }
   }
 }

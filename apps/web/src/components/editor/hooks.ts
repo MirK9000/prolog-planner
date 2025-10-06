@@ -1,8 +1,9 @@
 'use client';
 import React from 'react';
 import { usePlanStore } from '../../store/planStore';
+import type { CanvasView } from './hooks/useCanvasView';
 
-export type View = { zoom: number; panX: number; panY: number };
+export type View = CanvasView;
 
 export const useContainerSize = (ref: React.RefObject<HTMLDivElement | null>) => {
   const [size, setSize] = React.useState({ w: 800, h: 600 });
@@ -21,12 +22,19 @@ export const useContainerSize = (ref: React.RefObject<HTMLDivElement | null>) =>
   return size;
 };
 
-export const useEditorHotkeys = (
-  zoomAtCenter: (factor: number) => void,
-  setView: React.Dispatch<React.SetStateAction<View>>,
-  setGhost: (g: any) => void,
-  updateGhostAt: () => void
-) => {
+interface EditorHotkeysOptions {
+  zoomAtCenter: (factor: number) => void;
+  resetView: () => void;
+  setGhost: (ghost: any) => void;
+  updateGhostAt: () => void;
+}
+
+export const useEditorHotkeys = ({
+  zoomAtCenter,
+  resetView,
+  setGhost,
+  updateGhostAt,
+}: EditorHotkeysOptions) => {
   const { setPlacingType, deleteSelected, placingType, copySelected, copied } = usePlanStore();
   const spacePressed = React.useRef(false);
 
@@ -45,7 +53,7 @@ export const useEditorHotkeys = (
       }
       if (e.key === '0' || e.key.toLowerCase() === 'f') {
         e.preventDefault();
-        setView({ zoom: 1, panX: 0, panY: 0 });
+        resetView();
       }
       if (e.key === 'Escape') {
         setPlacingType(undefined);
@@ -55,11 +63,11 @@ export const useEditorHotkeys = (
         e.preventDefault();
         deleteSelected();
       }
-      if ((e.key.toLowerCase() === 'c') && (e.metaKey || e.ctrlKey) && !placingType) {
+      if (e.key.toLowerCase() === 'c' && (e.metaKey || e.ctrlKey) && !placingType) {
         e.preventDefault();
         copySelected();
       }
-      if ((e.key.toLowerCase() === 'v') && (e.metaKey || e.ctrlKey)) {
+      if (e.key.toLowerCase() === 'v' && (e.metaKey || e.ctrlKey)) {
         if (copied) {
           e.preventDefault();
           setPlacingType(copied.type);
@@ -77,7 +85,9 @@ export const useEditorHotkeys = (
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [zoomAtCenter, setView, setPlacingType, deleteSelected, placingType, setGhost, updateGhostAt, copySelected, copied]);
+  }, [zoomAtCenter, resetView, setPlacingType, deleteSelected, placingType, setGhost, updateGhostAt, copySelected, copied]);
 
   return spacePressed;
 };
+
+export { useCanvasView } from './hooks/useCanvasView';
