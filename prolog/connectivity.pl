@@ -37,6 +37,9 @@ accessible_neighbor(BlockedSet, Cx, Cy, X, Y) :-
     Y >= 0, Y < Cy,
     \+ ord_memberchk((X,Y), BlockedSet).
 
+is_unblocked_cell(BlockedSet, Cell) :-
+    \+ ord_memberchk(Cell, BlockedSet).
+
 /* ------------------------------------------------------------------
    Grid connectivity validation (Stage 2)
    ------------------------------------------------------------------ */
@@ -50,7 +53,7 @@ validate_grid_connectivity(RectsMM, Meta, Doors, Diagnostic) :-
     rects_to_cells_grid(S, X0,Y0, Cx,Cy, ObsMM, BlockedSet),
 
     all_grid_cells(Cx, Cy, AllCells),
-    include({BlockedSet}/[Cell]>>(\+ ord_memberchk(Cell, BlockedSet)),
+    include({BlockedSet}/[Cell]>>is_unblocked_cell(BlockedSet, Cell),
             AllCells, FreeCells),
 
     list_to_ord_set(FreeCells, FreeSet),
